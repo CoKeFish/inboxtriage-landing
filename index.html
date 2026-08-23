@@ -367,9 +367,9 @@
       <div class="lang-toggle" role="group" aria-label="Idioma / Language">
         <button type="button" data-lang="es" class="activo">ES</button><span aria-hidden="true">/</span><button type="button" data-lang="en">EN</button>
       </div>
-      <!-- Detección de app local: si el dashboard corre en localhost:8000 (GET /salud
-           con CORS), este botón apunta allá; si no, lleva a la descarga. -->
-      <a class="btn btn-sello" href="#descargar" data-dash>Dashboard</a>
+      <!-- Con la app local corriendo (GET localhost:8000/salud), este botón apunta
+           al dashboard local; si no, al panel hosteado con datos de ejemplo. -->
+      <a class="btn btn-sello" href="dashboard/" data-dash>Dashboard</a>
       <a class="btn btn-lleno" href="#descargar" data-i18n="nav.descargar">Descargar</a>
     </div>
   </div>
@@ -594,7 +594,7 @@
       <div class="lemas" data-i18n="ft.lema">100% local · Tu correo es tuyo</div>
     </div>
     <div class="enlaces">
-      <a href="#descargar" data-dash data-i18n="ft.dash">Dashboard técnico</a>
+      <a href="dashboard/" data-dash data-i18n="ft.dash">Dashboard</a>
       <a href="https://github.com/CoKeFish/inboxtriage-landing">GitHub</a>
     </div>
   </div>
