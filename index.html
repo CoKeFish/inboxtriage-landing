@@ -367,8 +367,9 @@
       <div class="lang-toggle" role="group" aria-label="Idioma / Language">
         <button type="button" data-lang="es" class="activo">ES</button><span aria-hidden="true">/</span><button type="button" data-lang="en">EN</button>
       </div>
-      <!-- EDITAR: URL real del dashboard (lo construye otro integrante; por ahora no apunta a nada) -->
-      <a class="btn btn-sello" href="#">Dashboard</a>
+      <!-- Detección de app local: si el dashboard corre en localhost:8000 (GET /salud
+           con CORS), este botón apunta allá; si no, lleva a la descarga. -->
+      <a class="btn btn-sello" href="#descargar" data-dash>Dashboard</a>
       <a class="btn btn-lleno" href="#descargar" data-i18n="nav.descargar">Descargar</a>
     </div>
   </div>
@@ -593,7 +594,7 @@
       <div class="lemas" data-i18n="ft.lema">100% local · Tu correo es tuyo</div>
     </div>
     <div class="enlaces">
-      <a href="#" data-i18n="ft.dash">Dashboard técnico</a>
+      <a href="#descargar" data-dash data-i18n="ft.dash">Dashboard técnico</a>
       <a href="https://github.com/CoKeFish/inboxtriage-landing">GitHub</a>
     </div>
   </div>
@@ -853,6 +854,27 @@
     setTimeout(ciclo, 3000);
   }
   ciclo();
+})();
+
+/* Detección de la app instalada: sondea el dashboard local. Si responde con
+   identidad válida, los enlaces "Dashboard" apuntan a localhost; si no (app no
+   instalada o apagada), llevan a la sección de descarga. Contrato que debe
+   cumplir el dashboard local: GET http://localhost:8000/salud respondiendo
+   JSON {"app":"inboxtriage"} con header Access-Control-Allow-Origin: * (y
+   Access-Control-Allow-Private-Network: true en el preflight, para Chrome). */
+(function () {
+  "use strict";
+  var DASH = "http://localhost:8000";
+  var enlaces = document.querySelectorAll("[data-dash]");
+  if (!enlaces.length || typeof AbortSignal === "undefined" || !AbortSignal.timeout) return;
+  fetch(DASH + "/salud", { signal: AbortSignal.timeout(1500) })
+    .then(function (r) { return r.json(); })
+    .then(function (j) {
+      if (j && j.app === "inboxtriage") {
+        enlaces.forEach(function (a) { a.setAttribute("href", DASH); });
+      }
+    })
+    .catch(function () { /* sin app local: los enlaces quedan hacia la descarga */ });
 })();
 </script>
 </body>
