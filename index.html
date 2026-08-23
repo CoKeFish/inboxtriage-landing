@@ -368,8 +368,9 @@
       <div class="lang-toggle" role="group" aria-label="Idioma / Language">
         <button type="button" data-lang="es" class="activo">ES</button><span aria-hidden="true">/</span><button type="button" data-lang="en">EN</button>
       </div>
-      <!-- Con la app local corriendo (GET localhost:8000/salud), este botón apunta
-           al dashboard local con tus correos reales; sin app, a la descarga. -->
+      <!-- Con la app local corriendo (GET localhost:8642/salud, o :8000 en
+           instalaciones viejas), este botón apunta al dashboard local con tus
+           correos reales; sin app, a la descarga. -->
       <a class="btn btn-sello" href="#descargar" data-dash>Dashboard</a>
       <a class="btn btn-lleno" href="#descargar" data-i18n="nav.descargar">Descargar</a>
     </div>
@@ -581,7 +582,7 @@
           <p class="sub" data-i18n="dl.sub">Gratis y de código abierto ·
           <a href="https://github.com/CoKeFish/inboxTriage/releases/latest/download/InboxTriage.zip">Linux (.zip)</a> ·
           <a href="https://github.com/CoKeFish/inboxtriage-landing">código en GitHub</a></p>
-          <p class="sub" data-i18n="dl.abrir">¿Ya lo tienes instalado? <a href="http://localhost:8000">Abrir tu panel</a> (con la app encendida)</p>
+          <p class="sub" data-i18n="dl.abrir">¿Ya lo tienes instalado? <a href="http://localhost:8642" data-dash>Abrir tu panel</a> (con la app encendida)</p>
         </div>
         <p class="descarga-nota" data-i18n="dl.nota">La app corre completa en tu computador — esta página solo la distribuye.</p>
       </div>
@@ -697,7 +698,7 @@
     "dl.r6v": "under 10 minutes",
     "dl.boton": "Download for Windows",
     "dl.sub": "Free and open source · <a href=\"https://github.com/CoKeFish/inboxTriage/releases/latest/download/InboxTriage.zip\">Linux (.zip)</a> · <a href=\"https://github.com/CoKeFish/inboxtriage-landing\">code on GitHub</a>",
-    "dl.abrir": "Already installed? <a href=\"http://localhost:8000\">Open your panel</a> (with the app running)",
+    "dl.abrir": "Already installed? <a href=\"http://localhost:8642\" data-dash>Open your panel</a> (with the app running)",
     "dl.nota": "The app runs entirely on your computer — this page only distributes it.",
     "ft.lema": "100% local · Your email is yours",
     "ft.dash": "Technical dashboard"
@@ -867,19 +868,28 @@
    Access-Control-Allow-Private-Network: true en el preflight, para Chrome). */
 (function () {
   "use strict";
-  var DASH = "http://localhost:8000";
+  /* 8642 es el puerto actual del panel (elegido por poco usado); 8000 queda
+     como respaldo para instalaciones viejas (p. ej. el Setup de Windows anterior). */
+  var PUERTOS = ["http://localhost:8642", "http://localhost:8000"];
   var enlaces = document.querySelectorAll("[data-dash]");
   if (!enlaces.length || typeof AbortSignal === "undefined" || !AbortSignal.timeout) return;
-  /* Timeout amplio: la primera vez Chrome puede pedir permiso de "red local"
-     y la respuesta llega cuando la persona acepta. */
-  fetch(DASH + "/salud", { signal: AbortSignal.timeout(8000) })
-    .then(function (r) { return r.json(); })
-    .then(function (j) {
-      if (j && j.app === "inboxtriage") {
-        enlaces.forEach(function (a) { a.setAttribute("href", DASH); });
-      }
-    })
-    .catch(function () { /* sin app local: los enlaces quedan hacia la descarga */ });
+  function sondear(i) {
+    if (i >= PUERTOS.length) return; /* sin app local: los enlaces quedan hacia la descarga */
+    var DASH = PUERTOS[i];
+    /* Timeout amplio: la primera vez Chrome puede pedir permiso de "red local"
+       y la respuesta llega cuando la persona acepta. */
+    fetch(DASH + "/salud", { signal: AbortSignal.timeout(8000) })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (j && j.app === "inboxtriage") {
+          enlaces.forEach(function (a) { a.setAttribute("href", DASH); });
+        } else {
+          sondear(i + 1);
+        }
+      })
+      .catch(function () { sondear(i + 1); });
+  }
+  sondear(0);
 })();
 </script>
 </body>
