@@ -581,6 +581,7 @@
           <p class="sub" data-i18n="dl.sub">Gratis y de código abierto ·
           <a href="https://github.com/CoKeFish/inboxTriage/releases/latest/download/InboxTriage.zip">Linux (.zip)</a> ·
           <a href="https://github.com/CoKeFish/inboxtriage-landing">código en GitHub</a></p>
+          <p class="sub" data-i18n="dl.abrir">¿Ya lo tienes instalado? <a href="http://localhost:8000">Abrir tu panel</a> (con la app encendida)</p>
         </div>
         <p class="descarga-nota" data-i18n="dl.nota">La app corre completa en tu computador — esta página solo la distribuye.</p>
       </div>
@@ -696,6 +697,7 @@
     "dl.r6v": "under 10 minutes",
     "dl.boton": "Download for Windows",
     "dl.sub": "Free and open source · <a href=\"https://github.com/CoKeFish/inboxTriage/releases/latest/download/InboxTriage.zip\">Linux (.zip)</a> · <a href=\"https://github.com/CoKeFish/inboxtriage-landing\">code on GitHub</a>",
+    "dl.abrir": "Already installed? <a href=\"http://localhost:8000\">Open your panel</a> (with the app running)",
     "dl.nota": "The app runs entirely on your computer — this page only distributes it.",
     "ft.lema": "100% local · Your email is yours",
     "ft.dash": "Technical dashboard"
@@ -868,7 +870,9 @@
   var DASH = "http://localhost:8000";
   var enlaces = document.querySelectorAll("[data-dash]");
   if (!enlaces.length || typeof AbortSignal === "undefined" || !AbortSignal.timeout) return;
-  fetch(DASH + "/salud", { signal: AbortSignal.timeout(1500) })
+  /* Timeout amplio: la primera vez Chrome puede pedir permiso de "red local"
+     y la respuesta llega cuando la persona acepta. */
+  fetch(DASH + "/salud", { signal: AbortSignal.timeout(8000) })
     .then(function (r) { return r.json(); })
     .then(function (j) {
       if (j && j.app === "inboxtriage") {

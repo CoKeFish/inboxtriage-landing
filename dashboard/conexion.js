@@ -26,7 +26,10 @@
     return mismoOrigen ? arrancar() : aDescargas();
   }
 
-  fetch(API + "/salud", { signal: AbortSignal.timeout(1200) })
+  /* En la web, la primera vez Chrome puede pedir permiso de "red local":
+     se espera lo suficiente para que la persona acepte. En la app instalada
+     la respuesta es inmediata. */
+  fetch(API + "/salud", { signal: AbortSignal.timeout(mismoOrigen ? 1500 : 6000) })
     .then(function (r) { return r.json(); })
     .then(function (j) {
       if (!j || j.app !== "inboxtriage") throw new Error("sin app local");
