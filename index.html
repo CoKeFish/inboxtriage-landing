@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>InboxTriage — Tu correo, ordenado y privado</title>
+<meta name="description" content="InboxTriage ordena tu Gmail según lo que es importante para ti esta semana: qué responder ya, qué puede esperar y qué ignorar. Toda la inteligencia corre en tu computador — nada se envía a la nube.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --papel: #EDF0F3;      /* luz de oficina: papel bajo fluorescente */
+    --carta: #FCFDFE;      /* blanco de tarjeta de correo */
+    --tinta: #111C27;      /* tinta principal */
+    --tinta-2: #46586A;    /* tinta secundaria */
+    --sello: #2447A8;      /* azul de sello institucional (marca) */
+    --sello-suave: #DFE6F5;
+    --ahora: #C93A2C;      /* rojo prioridad */
+    --ahora-suave: #F7E4E1;
+    --despues: #A36F06;    /* ámbar (texto sobre claro) */
+    --despues-suave: #F5ECD8;
+    --nunca: #67788A;      /* pizarra: no responder */
+    --nunca-suave: #E4E9EE;
+    --linea: #C7D1DA;
+
+    --display: "Archivo", "Arial Narrow", Impact, sans-serif;
+    --cuerpo: "Public Sans", "Segoe UI", system-ui, sans-serif;
+    --mono: "IBM Plex Mono", "Cascadia Code", Consolas, monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+  }
+
+  body {
+    background: var(--papel);
+    color: var(--tinta);
+    font-family: var(--cuerpo);
+    font-size: 1.0625rem;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--sello); }
+  :focus-visible { outline: 3px solid var(--sello); outline-offset: 2px; border-radius: 2px; }
+
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 clamp(1rem, 4vw, 2.5rem); }
+
+  /* ---------- nav ---------- */
+  nav {
+    position: sticky; top: 0; z-index: 50;
+    background: color-mix(in srgb, var(--papel) 88%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--linea);
+  }
+  .nav-inner { display: flex; align-items: center; gap: 1.5rem; padding: 0.85rem clamp(1rem, 4vw, 2.5rem); max-width: 1180px; margin: 0 auto; }
+  .marca {
+    font-family: var(--display);
+    font-variation-settings: "wdth" 125, "wght" 900;
+    font-size: 1.15rem;
+    letter-spacing: 0.02em;
+    color: var(--tinta);
+    text-decoration: none;
+  }
+  .marca span { color: var(--sello); }
+  .nav-links { display: flex; gap: 1.4rem; margin-left: auto; align-items: center; }
+  .nav-links a { color: var(--tinta-2); text-decoration: none; font-size: 0.92rem; font-weight: 500; }
+  .nav-links a:hover { color: var(--tinta); }
+  .lang-toggle { display: flex; align-items: center; gap: 0.1rem; font-family: var(--mono); font-size: 0.78rem; color: var(--tinta-2); }
+  .lang-toggle button {
+    background: none; border: none; cursor: pointer; font: inherit; color: inherit;
+    padding: 0.2rem 0.3rem; letter-spacing: 0.06em;
+  }
+  .lang-toggle button:hover { color: var(--tinta); }
+  .lang-toggle button.activo { color: var(--sello); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+  .btn {
+    display: inline-block;
+    font-family: var(--cuerpo);
+    font-weight: 600;
+    font-size: 0.95rem;
+    text-decoration: none;
+    padding: 0.6rem 1.15rem;
+    border-radius: 6px;
+    border: 2px solid var(--tinta);
+    color: var(--tinta);
+    background: transparent;
+    cursor: pointer;
+    transition: transform 120ms ease, background 120ms ease, color 120ms ease;
+  }
+  .btn:hover { transform: translateY(-1px); }
+  .btn-lleno { background: var(--tinta); color: var(--papel); }
+  .btn-lleno:hover { background: var(--sello); border-color: var(--sello); }
+  .btn-sello { border-color: var(--sello); color: var(--sello); }
+  .btn-sello:hover { background: var(--sello); color: #fff; }
+  @media (max-width: 720px) { .nav-links a.oculto-movil { display: none; } }
+
+  /* ---------- hero ---------- */
+  .hero { padding: clamp(3rem, 7vw, 5.5rem) 0 clamp(2rem, 4vw, 3.5rem); }
+  .hero-grid { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: clamp(2rem, 5vw, 4rem); align-items: center; }
+  @media (max-width: 900px) { .hero-grid { grid-template-columns: 1fr; } }
+
+  .ceja {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--sello);
+    display: block;
+    margin-bottom: 1.1rem;
+  }
+  h1 {
+    font-family: var(--display);
+    font-variation-settings: "wdth" 118, "wght" 850;
+    font-size: clamp(2.4rem, 5.6vw, 4.2rem);
+    line-height: 1;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+    margin-bottom: 1.4rem;
+  }
+  h1 .acento { color: var(--sello); }
+  .hero p.bajada { font-size: 1.15rem; color: var(--tinta-2); max-width: 34rem; margin-bottom: 1.8rem; }
+  .hero p.bajada strong { color: var(--tinta); }
+  .hero-acciones { display: flex; gap: 0.8rem; flex-wrap: wrap; align-items: center; }
+  .btn-grande { font-size: 1.05rem; padding: 0.85rem 1.6rem; }
+
+  /* ---------- escenario (firma) ---------- */
+  .escenario {
+    background: var(--carta);
+    border: 1px solid var(--linea);
+    border-radius: 14px;
+    box-shadow: 0 20px 50px -30px rgba(17, 28, 39, 0.35);
+    padding: 1.4rem 1.4rem 1.2rem;
+    position: relative;
+    overflow: hidden;
+    min-height: 420px;
+    display: flex; flex-direction: column;
+  }
+  .escenario-titulo {
+    font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--tinta-2);
+    display: flex; justify-content: space-between; gap: 1rem; margin-bottom: 1rem;
+    white-space: nowrap; overflow: hidden;
+  }
+  .escenario-titulo .punto { color: var(--ahora); }
+
+  .zona-carta { height: 150px; position: relative; display: flex; align-items: center; justify-content: center; }
+  .zona-carta::before {
+    content: "correo entrante";
+    position: absolute; inset: 2px 8%;
+    border: 1.5px dashed var(--linea); border-radius: 10px;
+    color: #A9B6C2; font-family: var(--mono); font-size: 0.62rem;
+    letter-spacing: 0.16em; text-transform: uppercase;
+    display: flex; align-items: flex-start; justify-content: center; padding-top: 5px;
+  }
+  html[lang="en"] .zona-carta::before { content: "incoming mail"; }
+  .correo-carta {
+    width: min(100%, 330px);
+    background: var(--carta);
+    border: 1px solid var(--linea);
+    border-left: 5px solid var(--nunca);
+    border-radius: 8px;
+    padding: 0.8rem 0.95rem;
+    box-shadow: 0 10px 24px -14px rgba(17, 28, 39, 0.4);
+    position: absolute;
+    opacity: 0;
+  }
+  .correo-carta .de { font-family: var(--mono); font-size: 0.72rem; color: var(--tinta-2); }
+  .correo-carta .asunto { font-weight: 600; font-size: 0.95rem; margin-top: 0.15rem; }
+  .correo-carta.entra { animation: carta-entra 380ms ease-out forwards; }
+  .correo-carta.sale-AHORA { animation: carta-sale-a 520ms ease-in forwards; }
+  .correo-carta.sale-DESPUES { animation: carta-sale-b 520ms ease-in forwards; }
+  .correo-carta.sale-NO { animation: carta-sale-c 520ms ease-in forwards; }
+  @keyframes carta-entra { from { opacity: 0; transform: translateY(-46px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+  @keyframes carta-sale-a { to { opacity: 0; transform: translate(-110px, 150px) scale(0.45) rotate(-5deg); } }
+  @keyframes carta-sale-b { to { opacity: 0; transform: translate(0, 150px) scale(0.45) rotate(2deg); } }
+  @keyframes carta-sale-c { to { opacity: 0; transform: translate(110px, 150px) scale(0.45) rotate(5deg); } }
+
+  .sello-marca {
+    position: absolute; top: -0.55rem; right: -0.5rem;
+    font-family: var(--display);
+    font-variation-settings: "wdth" 110, "wght" 800;
+    font-size: 0.9rem; letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 0.2rem 0.55rem;
+    border: 3px double currentColor; border-radius: 5px;
+    transform: rotate(-6deg) scale(0);
+    background: var(--carta);
+  }
+  .sello-marca.estampa { animation: estampa 240ms cubic-bezier(0.2, 1.6, 0.4, 1) forwards; }
+  @keyframes estampa {
+    0% { transform: rotate(-20deg) scale(2.1); opacity: 0; }
+    100% { transform: rotate(-6deg) scale(1); opacity: 1; }
+  }
+
+  .razon-linea {
+    font-family: var(--mono); font-size: 0.72rem; color: var(--tinta-2);
+    text-align: center; min-height: 1.4rem; margin: 0.4rem 0 0.8rem;
+  }
+  .razon-linea b { font-weight: 600; }
+
+  .bandejas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.7rem; margin-top: auto; }
+  .bandeja {
+    border: 1px dashed var(--linea); border-radius: 10px;
+    padding: 0.7rem 0.75rem 0.8rem;
+    background: linear-gradient(180deg, transparent 0%, rgba(17,28,39,0.025) 100%);
+    transition: border-color 200ms ease, background 200ms ease;
+  }
+  .bandeja.recibe { border-style: solid; }
+  .bandeja h3 {
+    font-family: var(--display); font-variation-settings: "wdth" 110, "wght" 800;
+    font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase;
+    display: flex; align-items: baseline; justify-content: space-between; gap: 0.4rem;
+  }
+  .bandeja .cuenta { font-family: var(--mono); font-size: 0.95rem; font-weight: 600; }
+  .bandeja .pila { display: flex; flex-direction: column; gap: 3px; margin-top: 0.5rem; min-height: 42px; justify-content: flex-end; }
+  .bandeja .pila i { display: block; height: 7px; border-radius: 2px; opacity: 0.85; }
+  .bandeja-ahora h3, .bandeja-ahora .cuenta { color: var(--ahora); }
+  .bandeja-ahora.recibe { border-color: var(--ahora); background: var(--ahora-suave); }
+  .bandeja-ahora .pila i { background: var(--ahora); }
+  .bandeja-despues h3, .bandeja-despues .cuenta { color: var(--despues); }
+  .bandeja-despues.recibe { border-color: var(--despues); background: var(--despues-suave); }
+  .bandeja-despues .pila i { background: var(--despues); }
+  .bandeja-no h3, .bandeja-no .cuenta { color: var(--nunca); }
+  .bandeja-no.recibe { border-color: var(--nunca); background: var(--nunca-suave); }
+  .bandeja-no .pila i { background: var(--nunca); }
+
+  /* ---------- cifras ---------- */
+  .cifras { border-top: 1px solid var(--linea); border-bottom: 1px solid var(--linea); background: var(--carta); }
+  .cifras-grid { display: grid; grid-template-columns: repeat(4, 1fr); }
+  @media (max-width: 820px) { .cifras-grid { grid-template-columns: repeat(2, 1fr); } }
+  .cifra { padding: 1.6rem 1.4rem; border-right: 1px solid var(--linea); }
+  .cifra:last-child { border-right: none; }
+  @media (max-width: 820px) { .cifra:nth-child(2) { border-right: none; } .cifra:nth-child(1), .cifra:nth-child(2) { border-bottom: 1px solid var(--linea); } }
+  .cifra .num { font-family: var(--display); font-variation-settings: "wdth" 120, "wght" 800; font-size: 2rem; line-height: 1; }
+  .cifra .num small { font-size: 1rem; font-variation-settings: "wdth" 110, "wght" 600; color: var(--tinta-2); }
+  .cifra .det { font-size: 0.85rem; color: var(--tinta-2); margin-top: 0.4rem; }
+
+  /* ---------- secciones ---------- */
+  section.bloque { padding: clamp(3.5rem, 7vw, 5.5rem) 0; }
+  .bloque-cab { max-width: 44rem; margin-bottom: 2.6rem; }
+  h2 {
+    font-family: var(--display);
+    font-variation-settings: "wdth" 115, "wght" 800;
+    font-size: clamp(1.7rem, 3.4vw, 2.5rem);
+    line-height: 1.05; text-transform: uppercase; letter-spacing: 0;
+    margin: 0.6rem 0 1rem;
+  }
+  .bloque-cab p { color: var(--tinta-2); font-size: 1.05rem; }
+
+  /* ---------- privacidad ---------- */
+  .privacidad-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; }
+  @media (max-width: 820px) { .privacidad-grid { grid-template-columns: 1fr; } }
+  .garantia { background: var(--carta); border: 1px solid var(--linea); border-radius: 12px; padding: 1.5rem; }
+  .garantia .sello-chico {
+    font-family: var(--display); font-variation-settings: "wdth" 110, "wght" 800;
+    font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--sello); border: 2px solid var(--sello); border-radius: 4px;
+    display: inline-block; padding: 0.15rem 0.5rem; transform: rotate(-2deg);
+    margin-bottom: 0.9rem; background: var(--sello-suave);
+  }
+  .garantia h3 { font-size: 1.05rem; margin-bottom: 0.5rem; }
+  .garantia p { font-size: 0.92rem; color: var(--tinta-2); }
+
+  /* ---------- ejemplo ---------- */
+  .caso-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.4rem; }
+  @media (max-width: 820px) { .caso-grid { grid-template-columns: 1fr; } }
+  .caso-carta {
+    background: var(--carta); border: 1px solid var(--linea); border-radius: 12px;
+    padding: 1.5rem; position: relative;
+  }
+  .caso-carta .de { font-family: var(--mono); font-size: 0.78rem; color: var(--tinta-2); }
+  .caso-carta .asunto { font-weight: 700; font-size: 1.1rem; margin: 0.3rem 0 0.7rem; }
+  .caso-carta .cuerpo-mail { color: var(--tinta-2); font-size: 0.95rem; border-left: 3px solid var(--linea); padding-left: 0.9rem; margin-bottom: 1.2rem; font-style: italic; }
+  .veredicto-final { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; }
+  .etiqueta {
+    font-family: var(--display); font-variation-settings: "wdth" 110, "wght" 800;
+    font-size: 0.78rem; letter-spacing: 0.07em; text-transform: uppercase;
+    padding: 0.22rem 0.6rem; border: 2px solid currentColor; border-radius: 4px;
+    transform: rotate(-1.5deg); display: inline-block;
+  }
+  .etiqueta-ahora { color: var(--ahora); background: var(--ahora-suave); }
+  .etiqueta-no { color: var(--nunca); background: var(--nunca-suave); }
+  .veredicto-final .porque { font-size: 0.9rem; color: var(--tinta-2); }
+  .caso-moraleja { margin-top: 1.8rem; max-width: 44rem; font-size: 1.05rem; }
+  .caso-moraleja strong { background: var(--sello-suave); padding: 0.05em 0.25em; border-radius: 3px; }
+
+  /* ---------- kanban ---------- */
+  .kanban { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; }
+  @media (max-width: 900px) { .kanban { grid-template-columns: 1fr; } }
+  .columna { border-radius: 12px; border: 1px solid var(--linea); background: var(--carta); overflow: hidden; display: flex; flex-direction: column; }
+  .columna-cab { padding: 1rem 1.2rem; border-bottom: 1px solid var(--linea); display: flex; align-items: center; justify-content: space-between; }
+  .columna-cab h3 { font-family: var(--display); font-variation-settings: "wdth" 112, "wght" 800; font-size: 1rem; text-transform: uppercase; letter-spacing: 0.03em; }
+  .columna-cab .chip { font-family: var(--mono); font-size: 0.72rem; padding: 0.1rem 0.5rem; border-radius: 999px; }
+  .columna-ahora .columna-cab { background: var(--ahora-suave); }
+  .columna-ahora .columna-cab h3, .columna-ahora .columna-cab .chip { color: var(--ahora); }
+  .columna-despues .columna-cab { background: var(--despues-suave); }
+  .columna-despues .columna-cab h3, .columna-despues .columna-cab .chip { color: var(--despues); }
+  .columna-no .columna-cab { background: var(--nunca-suave); }
+  .columna-no .columna-cab h3, .columna-no .columna-cab .chip { color: var(--nunca); }
+  .columna ul { list-style: none; padding: 0.9rem; display: grid; gap: 0.7rem; flex: 1; }
+  .mail {
+    border: 1px solid var(--linea); border-radius: 8px; padding: 0.75rem 0.85rem;
+    background: var(--papel); display: grid; gap: 0.3rem;
+  }
+  .mail .quien-mail { font-weight: 600; font-size: 0.92rem; }
+  .mail .que { font-size: 0.88rem; color: var(--tinta-2); }
+  .mail .razon { font-size: 0.8rem; color: var(--tinta-2); border-top: 1px dashed var(--linea); padding-top: 0.4rem; margin-top: 0.2rem; }
+  .mail .razon b { color: var(--sello); font-weight: 600; }
+  .columna-pie { padding: 0.9rem; border-top: 1px solid var(--linea); }
+  .cta-ahora {
+    display: block; text-align: center; text-decoration: none;
+    font-family: var(--display); font-variation-settings: "wdth" 112, "wght" 800;
+    font-size: 0.95rem; letter-spacing: 0.04em; text-transform: uppercase;
+    background: var(--ahora); color: #fff; border-radius: 8px; padding: 0.8rem 1rem;
+    transition: transform 120ms ease, background 120ms ease;
+  }
+  .cta-ahora:hover { transform: translateY(-1px); background: #A82D22; }
+  .columna-pie .pie-nota { font-size: 0.78rem; color: var(--tinta-2); text-align: center; margin-top: 0.5rem; }
+  .kanban-nota { margin-top: 1.6rem; font-size: 0.9rem; color: var(--tinta-2); max-width: 44rem; }
+
+  /* ---------- descarga ---------- */
+  .descarga { background: var(--tinta); color: var(--papel); }
+  .descarga .ceja { color: #9DB7F2; }
+  .descarga h2 { color: var(--papel); }
+  .descarga .bloque-cab p { color: #93A5B6; }
+  .descarga-grid { display: grid; grid-template-columns: 0.9fr 1.1fr; gap: clamp(1.5rem, 4vw, 3rem); align-items: center; }
+  @media (max-width: 900px) { .descarga-grid { grid-template-columns: 1fr; } }
+  .requisitos { list-style: none; display: grid; gap: 0.1rem; }
+  .requisitos li { display: flex; justify-content: space-between; gap: 1rem; padding: 0.8rem 0; border-bottom: 1px solid #26394C; font-size: 0.95rem; }
+  .requisitos .req { color: #93A5B6; }
+  .requisitos .val { font-family: var(--mono); font-size: 0.85rem; text-align: right; }
+  .descarga-caja { text-align: center; padding: 2rem 1.5rem; border: 1px solid #26394C; border-radius: 14px; background: #0D1520; }
+  .btn-descargar {
+    display: inline-block; text-decoration: none;
+    font-family: var(--display); font-variation-settings: "wdth" 112, "wght" 800;
+    font-size: 1.15rem; letter-spacing: 0.04em; text-transform: uppercase;
+    background: var(--sello); color: #fff; border-radius: 10px; padding: 1.1rem 2.4rem;
+    transition: transform 120ms ease, background 120ms ease;
+  }
+  .btn-descargar:hover { transform: translateY(-2px); background: #1B3781; }
+  .descarga-caja .sub { font-size: 0.9rem; color: #93A5B6; margin-top: 1rem; }
+  .descarga-caja .sub a { color: #9DB7F2; }
+  .descarga-nota { font-family: var(--mono); font-size: 0.78rem; color: #6B7C8D; margin-top: 1.2rem; text-align: center; }
+
+  /* ---------- footer ---------- */
+  footer { border-top: 1px solid var(--linea); padding: 2.2rem 0 2.6rem; }
+  .footer-grid { display: flex; justify-content: space-between; gap: 1.5rem; flex-wrap: wrap; align-items: center; }
+  .footer-marca { font-family: var(--display); font-variation-settings: "wdth" 125, "wght" 900; font-size: 1rem; }
+  .footer-marca span { color: var(--sello); }
+  footer .lemas { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--tinta-2); }
+  footer .enlaces { display: flex; gap: 1.2rem; }
+  footer .enlaces a { font-size: 0.9rem; }
+</style>
+</head>
+<body>
+
+<nav aria-label="Principal">
+  <div class="nav-inner">
+    <a class="marca" href="#">INBOXTRIAGE<span>/</span></a>
+    <div class="nav-links">
+      <a class="oculto-movil" href="#privacidad" data-i18n="nav.priv">Privacidad</a>
+      <a class="oculto-movil" href="#funciona" data-i18n="nav.funciona">Así funciona</a>
+      <div class="lang-toggle" role="group" aria-label="Idioma / Language">
+        <button type="button" data-lang="es" class="activo">ES</button><span aria-hidden="true">/</span><button type="button" data-lang="en">EN</button>
+      </div>
+      <a class="btn btn-sello" href="dashboard.html">Dashboard</a>
+      <a class="btn btn-lleno" href="#descargar" data-i18n="nav.descargar">Descargar</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero wrap">
+  <div class="hero-grid">
+    <div>
+      <span class="ceja" data-i18n="hero.ceja">Organiza tu Gmail · 100% privado</span>
+      <h1 data-i18n="hero.h1">Tu correo se ordena solo. <span class="acento">Y nunca sale de tu computador.</span></h1>
+      <p class="bajada" data-i18n="hero.bajada">
+        InboxTriage lee tu bandeja de Gmail y ordena cada correo nuevo según
+        <strong>lo que es importante para ti esta semana</strong>: qué responder ya,
+        qué puede esperar y qué no necesita respuesta. Pensado para personas y
+        empresas que quieren privacidad: la inteligencia corre en tu equipo, no en la nube.
+      </p>
+      <div class="hero-acciones">
+        <a class="btn btn-lleno btn-grande" href="#descargar" data-i18n="hero.cta1">Descargar InboxTriage</a>
+        <a class="btn" href="#funciona" data-i18n="hero.cta2">Ver cómo funciona</a>
+      </div>
+    </div>
+
+    <div class="escenario" id="escenario" aria-label="Demostración animada: correos ordenados en tres bandejas">
+      <div class="escenario-titulo">
+        <span data-i18n="esc.titulo"><span class="punto">●</span> ordenando tu bandeja</span>
+        <span id="escenario-reloj">08:30</span>
+      </div>
+      <div class="zona-carta" id="zona-carta"></div>
+      <p class="razon-linea" id="razon-linea" aria-live="polite"></p>
+      <div class="bandejas">
+        <div class="bandeja bandeja-ahora" id="bandeja-AHORA">
+          <h3><span data-i18n="b.ahora">Ahora</span> <span class="cuenta">0</span></h3>
+          <div class="pila"></div>
+        </div>
+        <div class="bandeja bandeja-despues" id="bandeja-DESPUES">
+          <h3><span data-i18n="b.despues">Después</span> <span class="cuenta">0</span></h3>
+          <div class="pila"></div>
+        </div>
+        <div class="bandeja bandeja-no" id="bandeja-NO">
+          <h3><span data-i18n="b.no">No resp.</span> <span class="cuenta">0</span></h3>
+          <div class="pila"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="cifras">
+  <div class="wrap cifras-grid">
+    <div class="cifra"><div class="num">30<small>%</small></div><div class="det" data-i18n="cif.1">de tu jornada se va hoy en ordenar el correo a mano. Recupéralo.</div></div>
+    <div class="cifra"><div class="num">0</div><div class="det" data-i18n="cif.2">datos enviados a la nube. Todo se procesa en tu computador.</div></div>
+    <div class="cifra"><div class="num">&lt;2<small>s</small></div><div class="det" data-i18n="cif.3">por correo. Abres Gmail y ya está ordenado.</div></div>
+    <div class="cifra"><div class="num">$0</div><div class="det" data-i18n="cif.4">al mes. Sin suscripciones, sin claves de terceros, sin servidores.</div></div>
+  </div>
+</div>
+
+<section class="bloque wrap" id="privacidad">
+  <div class="bloque-cab">
+    <span class="ceja" data-i18n="pri.ceja">Lo primero: tu privacidad</span>
+    <h2 data-i18n="pri.h2">Tu correo nunca sale de tu computador</h2>
+    <p data-i18n="pri.p">Los asistentes de correo con IA normalmente envían tus mensajes a servidores de
+    terceros para analizarlos. InboxTriage no: el análisis completo ocurre en tu propia máquina.
+    Si manejas información sensible — personal, laboral o de tus clientes — esta es la diferencia que importa.</p>
+  </div>
+  <div class="privacidad-grid">
+    <div class="garantia">
+      <span class="sello-chico" data-i18n="pri.s1">En tu equipo</span>
+      <h3 data-i18n="pri.t1">La IA corre en tu computador</h3>
+      <p data-i18n="pri.d1">Ningún correo viaja a la nube para ser analizado. El modelo de inteligencia
+      artificial vive y trabaja en tu propia máquina — funciona incluso sin conexión.</p>
+    </div>
+    <div class="garantia">
+      <span class="sello-chico" data-i18n="pri.s2">Solo lectura</span>
+      <h3 data-i18n="pri.t2">Nunca envía ni borra nada</h3>
+      <p data-i18n="pri.d2">InboxTriage solo puede leer tus correos y ponerles etiquetas en tu Gmail.
+      Responder sigue siendo decisión tuya: la app no tiene permiso para enviar ni eliminar.</p>
+    </div>
+    <div class="garantia">
+      <span class="sello-chico" data-i18n="pri.s3">Tu criterio</span>
+      <h3 data-i18n="pri.t3">Tú defines qué es prioridad</h3>
+      <p data-i18n="pri.d3">Escribes en un archivo simple qué es importante para ti esta semana —
+      un evento, un cierre, ciertas personas. Lo cambias cuando quieras, lo borras cuando quieras.</p>
+    </div>
+  </div>
+</section>
+
+<section class="bloque wrap" id="funciona" style="padding-top: 0;">
+  <div class="bloque-cab">
+    <span class="ceja" data-i18n="caso.ceja">Por qué es distinto</span>
+    <h2 data-i18n="caso.h2">Prioriza por lo que dice el correo, no por quién lo envía</h2>
+    <p data-i18n="caso.p">Los filtros normales ordenan por remitente o palabras clave, y por eso fallan.
+    InboxTriage entiende el mensaje y lo cruza con lo que es importante para ti esta semana.
+    Dos correos que llegaron anoche:</p>
+  </div>
+  <div class="caso-grid">
+    <article class="caso-carta">
+      <div class="de" data-i18n="caso.de1">De: dirección general · 18:02</div>
+      <div class="asunto" data-i18n="caso.as1">IMPORTANTE: Comunicado mensual de bienestar</div>
+      <p class="cuerpo-mail" data-i18n="caso.cu1">"Adjuntamos el comunicado de bienestar del mes. Los invitamos a leerlo con calma…"</p>
+      <div class="veredicto-final">
+        <span class="etiqueta etiqueta-no" data-i18n="caso.et1">Sin respuesta</span>
+        <span class="porque" data-i18n="caso.pq1">Es un aviso general. Nadie está esperando que contestes.</span>
+      </div>
+    </article>
+    <article class="caso-carta">
+      <div class="de" data-i18n="caso.de2">De: proveedor del evento · 23:14</div>
+      <div class="asunto" data-i18n="caso.as2">Confirmación de montaje</div>
+      <p class="cuerpo-mail" data-i18n="caso.cu2">"¿El número final de invitados es 80 o 120? Necesitamos el dato para el pedido de mañana."</p>
+      <div class="veredicto-final">
+        <span class="etiqueta etiqueta-ahora" data-i18n="caso.et2">Responder ahora</span>
+        <span class="porque" data-i18n="caso.pq2">Te preguntan a ti, y es para mañana.</span>
+      </div>
+    </article>
+  </div>
+  <p class="caso-moraleja" data-i18n="caso.moraleja">
+    El correo que de verdad importa puede venir de <strong>alguien que no está en tus contactos</strong> —
+    y el correo del jefe puede ser solo un aviso. Por eso ningún filtro por remitente te sirve.
+  </p>
+</section>
+
+<section class="bloque wrap" id="bandeja" style="padding-top: 0;">
+  <div class="bloque-cab">
+    <span class="ceja" data-i18n="kb.ceja">Tu bandeja a las 08:34</span>
+    <h2 data-i18n="kb.h2">Todo tu correo en tres decisiones</h2>
+    <p data-i18n="kb.p">Cada correo nuevo queda etiquetado directamente en tu Gmail, con la razón a la vista.
+    Tu día empieza por la primera columna — el resto puede esperar.</p>
+  </div>
+  <div class="kanban">
+    <div class="columna columna-ahora">
+      <div class="columna-cab"><h3 data-i18n="kb.c1">Responder ahora</h3><span class="chip" data-i18n="kb.chip1">2 correos</span></div>
+      <ul>
+        <li class="mail">
+          <div class="quien-mail" data-i18n="kb.m1q">Proveedor del evento</div>
+          <div class="que" data-i18n="kb.m1a">¿Confirmamos montaje mañana?</div>
+          <div class="razon" data-i18n="kb.m1r"><b>por qué:</b> te preguntan algo y es para mañana</div>
+        </li>
+        <li class="mail">
+          <div class="quien-mail" data-i18n="kb.m2q">Vicerrector</div>
+          <div class="que" data-i18n="kb.m2a">Firma de auditoría hoy</div>
+          <div class="razon" data-i18n="kb.m2r"><b>por qué:</b> tu criterio dice: si menciona auditoría, va primero</div>
+        </li>
+      </ul>
+      <div class="columna-pie">
+        <a class="cta-ahora" href="https://mail.google.com/mail/u/0/#label/InboxTriage%2FResponder+ahora" data-i18n="kb.cta">Atiende estos 2 primero →</a>
+        <p class="pie-nota" data-i18n="kb.ctanota">Se abre directamente en tu Gmail</p>
+      </div>
+    </div>
+    <div class="columna columna-despues">
+      <div class="columna-cab"><h3 data-i18n="kb.c2">Responder después</h3><span class="chip" data-i18n="kb.chip2">2 correos</span></div>
+      <ul>
+        <li class="mail">
+          <div class="quien-mail" data-i18n="kb.m3q">Alumno</div>
+          <div class="que" data-i18n="kb.m3a">Solicitud de carta de recomendación</div>
+          <div class="razon" data-i18n="kb.m3r"><b>por qué:</b> te piden algo, pero sin fecha límite</div>
+        </li>
+        <li class="mail">
+          <div class="quien-mail" data-i18n="kb.m4q">Jefe</div>
+          <div class="que" data-i18n="kb.m4a">Reporte para el viernes</div>
+          <div class="razon" data-i18n="kb.m4r"><b>por qué:</b> es para el viernes — puede esperar a la tarde</div>
+        </li>
+      </ul>
+      <div class="columna-pie"><p class="pie-nota" data-i18n="kb.pie2">Para la tarde, sin culpa.</p></div>
+    </div>
+    <div class="columna columna-no">
+      <div class="columna-cab"><h3 data-i18n="kb.c3">Sin respuesta</h3><span class="chip" data-i18n="kb.chip3">2 correos</span></div>
+      <ul>
+        <li class="mail">
+          <div class="quien-mail">Newsletter</div>
+          <div class="que" data-i18n="kb.m5a">¡Últimas horas! Descuento en software</div>
+          <div class="razon" data-i18n="kb.m5r"><b>por qué:</b> promoción masiva — nadie espera tu respuesta</div>
+        </li>
+        <li class="mail">
+          <div class="quien-mail" data-i18n="kb.m6q">Comunicaciones</div>
+          <div class="que" data-i18n="kb.m6a">FYI — Fotos del evento pasado</div>
+          <div class="razon" data-i18n="kb.m6r"><b>por qué:</b> solo información, no hay pregunta para ti</div>
+        </li>
+      </ul>
+      <div class="columna-pie"><p class="pie-nota" data-i18n="kb.pie3">Siguen en tu inbox, por si acaso.</p></div>
+    </div>
+  </div>
+  <p class="kanban-nota" data-i18n="kb.nota">
+    ¿Y si el sistema duda? El correo nunca se esconde: cae en <em>Responder después</em>
+    para que igual lo veas. Un correo con trabajo real jamás termina enterrado.
+  </p>
+</section>
+
+<section class="bloque descarga" id="descargar">
+  <div class="wrap">
+    <div class="bloque-cab">
+      <span class="ceja" data-i18n="dl.ceja">Descarga</span>
+      <h2 data-i18n="dl.h2">Pruébalo en tu computador</h2>
+      <p data-i18n="dl.p">Instálalo, conecta tu Gmail y mira tu bandeja ordenarse. Sin cuentas nuevas, sin pagos.</p>
+    </div>
+    <div class="descarga-grid">
+      <div>
+        <ul class="requisitos">
+          <li><span class="req" data-i18n="dl.r1">Sistema operativo</span><span class="val">Ubuntu 25</span></li>
+          <li><span class="req" data-i18n="dl.r2">Memoria</span><span class="val">32 GB RAM</span></li>
+          <li><span class="req" data-i18n="dl.r3">Tarjeta gráfica</span><span class="val" data-i18n="dl.r3v">no necesaria — la integrada basta</span></li>
+          <li><span class="req" data-i18n="dl.r4">Modelo de IA</span><span class="val" data-i18n="dl.r4v">se descarga una sola vez (~1 GB)</span></li>
+          <li><span class="req" data-i18n="dl.r5">Correo</span><span class="val" data-i18n="dl.r5v">cuenta de Gmail</span></li>
+          <li><span class="req" data-i18n="dl.r6">Instalación</span><span class="val" data-i18n="dl.r6v">menos de 10 minutos</span></li>
+        </ul>
+      </div>
+      <div>
+        <div class="descarga-caja">
+          <!-- EDITAR: URL real de descarga (por ahora no apunta a nada) -->
+          <a class="btn-descargar" href="#" data-i18n="dl.boton">Descargar InboxTriage</a>
+          <p class="sub" data-i18n="dl.sub">Gratis y de código abierto. ¿Prefieres el código?
+          <!-- EDITAR: URL real del repositorio -->
+          <a href="https://github.com/inboxtriage/inboxtriage">Míralo en GitHub</a>.</p>
+        </div>
+        <p class="descarga-nota" data-i18n="dl.nota">La app corre completa en tu computador — esta página solo la distribuye.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap footer-grid">
+    <div>
+      <div class="footer-marca">INBOXTRIAGE<span>/</span></div>
+      <div class="lemas" data-i18n="ft.lema">100% local · Tu correo es tuyo</div>
+    </div>
+    <div class="enlaces">
+      <a href="dashboard.html" data-i18n="ft.dash">Dashboard técnico</a>
+      <!-- EDITAR: URL real del repositorio -->
+      <a href="https://github.com/inboxtriage/inboxtriage">GitHub</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  /* =============== i18n =============== */
+  /* El español vive en el HTML (fuente de verdad); el inglés, en este diccionario. */
+  var EN = {
+    "nav.priv": "Privacy",
+    "nav.funciona": "How it works",
+    "nav.descargar": "Download",
+    "hero.ceja": "Organize your Gmail · 100% private",
+    "hero.h1": "Your email sorts itself. <span class=\"acento\">And it never leaves your computer.</span>",
+    "hero.bajada": "InboxTriage reads your Gmail inbox and sorts every new email by <strong>what matters to you this week</strong>: what to answer now, what can wait, and what needs no reply. Built for people and companies that want privacy: the intelligence runs on your machine, not in the cloud.",
+    "hero.cta1": "Download InboxTriage",
+    "hero.cta2": "See how it works",
+    "esc.titulo": "<span class=\"punto\">●</span> sorting your inbox",
+    "b.ahora": "Now",
+    "b.despues": "Later",
+    "b.no": "No reply",
+    "cif.1": "of your workday goes to sorting email by hand. Get it back.",
+    "cif.2": "data sent to the cloud. Everything is processed on your computer.",
+    "cif.3": "per email. You open Gmail and it's already sorted.",
+    "cif.4": "per month. No subscriptions, no third-party keys, no servers.",
+    "pri.ceja": "First things first: your privacy",
+    "pri.h2": "Your email never leaves your computer",
+    "pri.p": "AI email assistants normally send your messages to third-party servers for analysis. InboxTriage doesn't: the entire analysis happens on your own machine. If you handle sensitive information — personal, work, or your clients' — this is the difference that matters.",
+    "pri.s1": "On your machine",
+    "pri.t1": "The AI runs on your computer",
+    "pri.d1": "No email travels to the cloud to be analyzed. The artificial intelligence model lives and works on your own machine — it even works offline.",
+    "pri.s2": "Read-only",
+    "pri.t2": "It never sends or deletes anything",
+    "pri.d2": "InboxTriage can only read your emails and label them in your Gmail. Replying is still your decision: the app has no permission to send or delete.",
+    "pri.s3": "Your rules",
+    "pri.t3": "You define what's a priority",
+    "pri.d3": "You write in a simple file what matters to you this week — an event, a deadline, certain people. Change it whenever you want, delete it whenever you want.",
+    "caso.ceja": "Why it's different",
+    "caso.h2": "It prioritizes by what the email says, not who sent it",
+    "caso.p": "Normal filters sort by sender or keywords, and that's why they fail. InboxTriage understands the message and weighs it against what matters to you this week. Two emails that arrived last night:",
+    "caso.de1": "From: general management · 18:02",
+    "caso.as1": "IMPORTANT: Monthly wellness bulletin",
+    "caso.cu1": "\"Attached is this month's wellness bulletin. We invite you to read it at your leisure…\"",
+    "caso.et1": "No reply",
+    "caso.pq1": "It's a general announcement. Nobody is waiting for your answer.",
+    "caso.de2": "From: event vendor · 23:14",
+    "caso.as2": "Setup confirmation",
+    "caso.cu2": "\"Is the final guest count 80 or 120? We need the number for tomorrow's order.\"",
+    "caso.et2": "Reply now",
+    "caso.pq2": "They're asking you, and it's for tomorrow.",
+    "caso.moraleja": "The email that truly matters can come from <strong>someone who isn't in your contacts</strong> — and the boss's email can be just an announcement. That's why no sender-based filter works.",
+    "kb.ceja": "Your inbox at 8:34 am",
+    "kb.h2": "All your email in three decisions",
+    "kb.p": "Every new email gets labeled right in your Gmail, with the reason in plain sight. Your day starts with the first column — the rest can wait.",
+    "kb.c1": "Reply now",
+    "kb.chip1": "2 emails",
+    "kb.m1q": "Event vendor",
+    "kb.m1a": "Confirming setup for tomorrow?",
+    "kb.m1r": "<b>why:</b> they're asking you something, and it's for tomorrow",
+    "kb.m2q": "Vice-rector",
+    "kb.m2a": "Audit signature due today",
+    "kb.m2r": "<b>why:</b> your rules say: if it mentions audit, it goes first",
+    "kb.cta": "Handle these 2 first →",
+    "kb.ctanota": "Opens directly in your Gmail",
+    "kb.c2": "Reply later",
+    "kb.chip2": "2 emails",
+    "kb.m3q": "Student",
+    "kb.m3a": "Recommendation letter request",
+    "kb.m3r": "<b>why:</b> they're asking for something, but with no deadline",
+    "kb.m4q": "Boss",
+    "kb.m4a": "Report due Friday",
+    "kb.m4r": "<b>why:</b> it's due Friday — it can wait until the afternoon",
+    "kb.pie2": "For the afternoon, guilt-free.",
+    "kb.c3": "No reply",
+    "kb.chip3": "2 emails",
+    "kb.m5a": "Last hours! Software discount",
+    "kb.m5r": "<b>why:</b> bulk promotion — nobody expects your reply",
+    "kb.m6q": "Comms office",
+    "kb.m6a": "FYI — Photos from last event",
+    "kb.m6r": "<b>why:</b> just information, there's no question for you",
+    "kb.pie3": "Still in your inbox, just in case.",
+    "kb.nota": "What if the system isn't sure? The email is never hidden: it lands in <em>Reply later</em> so you still see it. An email with real work never ends up buried.",
+    "dl.ceja": "Download",
+    "dl.h2": "Try it on your computer",
+    "dl.p": "Install it, connect your Gmail and watch your inbox sort itself. No new accounts, no payments.",
+    "dl.r1": "Operating system",
+    "dl.r2": "Memory",
+    "dl.r3": "Graphics card",
+    "dl.r3v": "not required — integrated is enough",
+    "dl.r4": "AI model",
+    "dl.r4v": "downloads once (~1 GB)",
+    "dl.r5": "Email",
+    "dl.r5v": "Gmail account",
+    "dl.r6": "Install",
+    "dl.r6v": "under 10 minutes",
+    "dl.boton": "Download InboxTriage",
+    "dl.sub": "Free and open source. Prefer the code? <a href=\"https://github.com/inboxtriage/inboxtriage\">See it on GitHub</a>.",
+    "dl.nota": "The app runs entirely on your computer — this page only distributes it.",
+    "ft.lema": "100% local · Your email is yours",
+    "ft.dash": "Technical dashboard"
+  };
+
+  var META = {
+    es: {
+      title: "InboxTriage — Tu correo, ordenado y privado",
+      desc: "InboxTriage ordena tu Gmail según lo que es importante para ti esta semana: qué responder ya, qué puede esperar y qué ignorar. Toda la inteligencia corre en tu computador — nada se envía a la nube.",
+      aria: "Demostración animada: correos ordenados en tres bandejas",
+      razon: "por qué: ",
+      estatico: "6 correos ordenados — cada uno con su razón a la vista"
+    },
+    en: {
+      title: "InboxTriage — Your email, sorted and private",
+      desc: "InboxTriage sorts your Gmail by what matters to you this week: what to answer now, what can wait, and what to ignore. All the intelligence runs on your computer — nothing is sent to the cloud.",
+      aria: "Animated demo: emails sorted into three trays",
+      razon: "why: ",
+      estatico: "6 emails sorted — each with its reason in plain sight"
+    }
+  };
+
+  var nodos = document.querySelectorAll("[data-i18n]");
+  var ES = {};
+  nodos.forEach(function (el) {
+    var k = el.getAttribute("data-i18n");
+    if (!(k in ES)) ES[k] = el.innerHTML;
+  });
+
+  var lang = (function () {
+    var url = new URLSearchParams(location.search).get("lang");
+    if (url === "es" || url === "en") return url;
+    var guardado = null;
+    try { guardado = localStorage.getItem("it-lang"); } catch (e) {}
+    if (guardado === "es" || guardado === "en") return guardado;
+    var nav = (navigator.language || "es").toLowerCase();
+    return nav.indexOf("es") === 0 ? "es" : "en";
+  })();
+
+  function t(k) { return lang === "es" ? ES[k] : (EN[k] || ES[k]); }
+
+  function setLang(l) {
+    lang = l;
+    try { localStorage.setItem("it-lang", l); } catch (e) {}
+    nodos.forEach(function (el) { el.innerHTML = t(el.getAttribute("data-i18n")); });
+    document.documentElement.lang = l;
+    document.title = META[l].title;
+    var meta = document.querySelector('meta[name="description"]');
+    if (meta) meta.setAttribute("content", META[l].desc);
+    document.getElementById("escenario").setAttribute("aria-label", META[l].aria);
+    document.querySelectorAll(".lang-toggle button").forEach(function (b) {
+      b.classList.toggle("activo", b.getAttribute("data-lang") === l);
+    });
+    if (reduceMotion) renderEstatico();
+  }
+
+  document.querySelectorAll(".lang-toggle button").forEach(function (b) {
+    b.addEventListener("click", function () { setLang(b.getAttribute("data-lang")); });
+  });
+
+  /* =============== escenario (elemento firma) =============== */
+  var CORREOS = [
+    { de: "catering@proveedor.mx", cubeta: "AHORA", color: "var(--ahora)",
+      asunto: { es: "¿Confirmamos montaje mañana?", en: "Confirming setup for tomorrow?" },
+      sello:  { es: "Ahora", en: "Now" },
+      razon:  { es: "te preguntan algo y es para mañana", en: "they ask you something, due tomorrow" } },
+    { de: "direccion.general@institucion.edu", cubeta: "NO", color: "var(--nunca)",
+      asunto: { es: "Comunicado mensual de bienestar", en: "Monthly wellness bulletin" },
+      sello:  { es: "No resp.", en: "No reply" },
+      razon:  { es: "aviso general, nadie espera tu respuesta", en: "general notice, nobody awaits your reply" } },
+    { de: "jefe@institucion.edu", cubeta: "DESPUES", color: "var(--despues)",
+      asunto: { es: "Reporte para el viernes", en: "Report due Friday" },
+      sello:  { es: "Después", en: "Later" },
+      razon:  { es: "es para el viernes, puede esperar", en: "due Friday, it can wait" } },
+    { de: "vicerrector@uni.edu", cubeta: "AHORA", color: "var(--ahora)",
+      asunto: { es: "Firma de auditoría hoy", en: "Audit signature due today" },
+      sello:  { es: "Ahora", en: "Now" },
+      razon:  { es: "tu criterio: auditoría va primero", en: "your rule: audits go first" } },
+    { de: "newsletter@ofertas.com", cubeta: "NO", color: "var(--nunca)",
+      asunto: { es: "¡ÚLTIMAS HORAS! Descuento", en: "LAST HOURS! Discount" },
+      sello:  { es: "No resp.", en: "No reply" },
+      razon:  { es: "que grite urgencia no lo hace urgente", en: "shouting urgency doesn't make it urgent" } },
+    { de: "alumno@uni.edu", cubeta: "DESPUES", color: "var(--despues)",
+      asunto: { es: "Solicitud de carta", en: "Letter request" },
+      sello:  { es: "Después", en: "Later" },
+      razon:  { es: "te piden algo, sin fecha límite", en: "a request with no deadline" } }
+  ];
+
+  var zona = document.getElementById("zona-carta");
+  var razonLinea = document.getElementById("razon-linea");
+  var reloj = document.getElementById("escenario-reloj");
+  var cuentas = { AHORA: 0, DESPUES: 0, NO: 0 };
+  var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function bandeja(cubeta) { return document.getElementById("bandeja-" + cubeta); }
+
+  function apilar(cubeta) {
+    cuentas[cubeta] += 1;
+    var b = bandeja(cubeta);
+    b.querySelector(".cuenta").textContent = cuentas[cubeta];
+    var pila = b.querySelector(".pila");
+    if (pila.children.length >= 5) pila.removeChild(pila.firstChild);
+    pila.appendChild(document.createElement("i"));
+    b.classList.add("recibe");
+    setTimeout(function () { b.classList.remove("recibe"); }, 600);
+  }
+
+  function tic() {
+    var m = 30 + Object.values(cuentas).reduce(function (a, x) { return a + x; }, 0) % 30;
+    reloj.textContent = "08:" + (m < 10 ? "0" + m : m);
+  }
+
+  function renderEstatico() {
+    razonLinea.innerHTML = META[lang].estatico;
+    var c0 = CORREOS[0];
+    zona.innerHTML =
+      '<div class="correo-carta" style="opacity:1;border-left-color:' + c0.color + '">' +
+      '<div class="de">' + c0.de + '</div><div class="asunto">' + c0.asunto[lang] + '</div>' +
+      '<span class="sello-marca" style="color:' + c0.color + ';transform:rotate(-6deg) scale(1)">' + c0.sello[lang] + '</span></div>';
+  }
+
+  setLang(lang);
+
+  if (reduceMotion) {
+    CORREOS.forEach(function (c) { apilar(c.cubeta); });
+    renderEstatico();
+    return;
+  }
+
+  var i = 0;
+  function ciclo() {
+    if (document.hidden) { setTimeout(ciclo, 1200); return; }
+    var c = CORREOS[i % CORREOS.length];
+    i += 1;
+
+    var carta = document.createElement("div");
+    carta.className = "correo-carta entra";
+    carta.style.borderLeftColor = c.color;
+    carta.innerHTML = '<div class="de">' + c.de + '</div><div class="asunto">' + c.asunto[lang] + "</div>" +
+      '<span class="sello-marca" style="color:' + c.color + '">' + c.sello[lang] + "</span>";
+    zona.innerHTML = "";
+    zona.appendChild(carta);
+    razonLinea.innerHTML = "&nbsp;";
+
+    setTimeout(function () {
+      carta.querySelector(".sello-marca").classList.add("estampa");
+      razonLinea.innerHTML = META[lang].razon + c.razon[lang];
+    }, 900);
+
+    setTimeout(function () {
+      carta.classList.remove("entra");
+      carta.classList.add("sale-" + c.cubeta);
+      apilar(c.cubeta);
+      tic();
+    }, 2100);
+
+    setTimeout(ciclo, 3000);
+  }
+  ciclo();
+})();
+</script>
+</body>
+</html>
