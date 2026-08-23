@@ -11,8 +11,14 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="estilo.css">
+<style>
+  /* El panel permanece oculto hasta confirmar la app local (conexion.js);
+     sin app instalada no se muestra nada: se redirige a la descarga. */
+  body[data-esperando] .tablero { visibility: hidden; }
+</style>
+<noscript><meta http-equiv="refresh" content="0; url=https://inboxtriage.vercel.app/#descargar"></noscript>
 </head>
-<body>
+<body data-esperando>
 
 <div class="tablero">
   <aside class="riel">

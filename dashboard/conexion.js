@@ -12,6 +12,7 @@
   window.CONEXION = { activa: false, api: API, local: mismoOrigen };
 
   function arrancar() {
+    document.body.removeAttribute("data-esperando");
     var s = document.createElement("script");
     s.src = "app.js";
     document.body.appendChild(s);
