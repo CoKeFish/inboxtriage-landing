@@ -27,6 +27,12 @@
     "chip.real":       { es: "Conectado · tus correos reales", en: "Connected · your real emails" },
     "chip.real.datos": { es: "Conectado · tu criterio real", en: "Connected · your real rules" },
     "riel.web":        { es: "← Volver a la web", en: "← Back to the site" },
+    "riel.salir":      { es: "Cambiar de cuenta de Gmail", en: "Switch Gmail account" },
+    "salir.pregunta":  { es: "¿Cerrar la sesión de Gmail?", en: "Sign out of Gmail?" },
+    "salir.si":        { es: "Sí, cambiar", en: "Yes, switch" },
+    "salir.no":        { es: "No", en: "No" },
+    "salir.adios":     { es: "Sesión cerrada. Se abrirá la ventana de InboxTriage con la pantalla de Google para elegir otra cuenta — puedes cerrar esta pestaña.",
+                         en: "Signed out. The InboxTriage window will open with Google's screen to pick another account — you can close this tab." },
     "vacio.sinDatos":  { es: "Aún no hay correos clasificados. Corre InboxTriage (clasifica tu bandeja) y recarga esta página.",
                          en: "No emails classified yet. Run InboxTriage (it sorts your inbox) and reload this page." },
     "buscar.ph":       { es: "Buscar remitente, asunto o texto…", en: "Search sender, subject or text…" },
@@ -239,6 +245,30 @@
   document.querySelectorAll(".lang-toggle button").forEach(function (b) {
     b.addEventListener("click", function () { setLang(b.getAttribute("data-lang")); });
   });
+
+  /* ---------- cambiar de cuenta (solo con la app conectada) ---------- */
+  (function () {
+    var enlace = document.getElementById("riel-salir");
+    var caja = document.getElementById("riel-salir-confirma");
+    if (!enlace || !caja || !conectado()) return;
+    enlace.hidden = false;
+    enlace.addEventListener("click", function (e) {
+      e.preventDefault();
+      enlace.hidden = true;
+      caja.hidden = false;
+    });
+    document.getElementById("salir-no").addEventListener("click", function () {
+      caja.hidden = true;
+      enlace.hidden = false;
+    });
+    document.getElementById("salir-si").addEventListener("click", function () {
+      fetch(window.CONEXION.api + "/api/salir", { method: "POST" })
+        .catch(function () {})
+        .then(function () {
+          document.body.innerHTML = '<div class="salir-adios">' + t("salir.adios") + "</div>";
+        });
+    });
+  })();
 
   /* ---------- riel: sección activa y contador ---------- */
   function actualizarNav(rutaActual) {

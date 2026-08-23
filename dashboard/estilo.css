@@ -407,3 +407,48 @@ h1 {
   font-size: 0.85rem;
 }
 .riel-volver:hover { color: var(--carta); }
+
+/* Cambiar de cuenta (riel) */
+.riel-salir {
+  display: block;
+  margin-top: 10px;
+  color: var(--riel-tenue);
+  text-decoration: none;
+  font-size: 0.85rem;
+}
+.riel-salir:hover { color: var(--carta); }
+.riel-salir-confirma {
+  margin-top: 10px;
+  font-size: 0.82rem;
+  color: var(--riel-texto);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.riel-salir-confirma[hidden] { display: none; }
+.riel-salir-confirma > div { display: flex; gap: 8px; }
+.riel-salir-confirma button {
+  background: transparent;
+  border: 1px solid var(--riel-borde);
+  color: var(--riel-texto);
+  border-radius: 6px;
+  padding: 4px 12px;
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+.riel-salir-confirma button:hover { color: var(--carta); border-color: var(--riel-texto); }
+.salir-adios {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: var(--riel-fondo);
+  color: var(--riel-texto);
+  font-family: "Public Sans", "Segoe UI", system-ui, sans-serif;
+  font-size: 1.05rem;
+  text-align: center;
+  max-width: none;
+}
+.salir-adios { line-height: 1.6; }
