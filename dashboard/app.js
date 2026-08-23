@@ -39,6 +39,9 @@
     "buscar.aria":     { es: "Buscar correo", en: "Search email" },
     "filtros.aria":    { es: "Filtrar por sello", en: "Filter by stamp" },
     "filtros.todos":   { es: "Todos", en: "All" },
+    "filtros.noleidos":    { es: "No leídos", en: "Unread" },
+    "accion.clasificar":   { es: "↻ Clasificar nuevos", en: "↻ Classify new" },
+    "accion.clasificando": { es: "Clasificando…", en: "Classifying…" },
     "registro.aria":   { es: "Correos clasificados", en: "Sorted emails" },
     "dia.hoy":         { es: "Hoy", en: "Today" },
     "dia.ayer":        { es: "Ayer", en: "Yesterday" },
@@ -135,6 +138,10 @@
   var estado = {
     filtro: "TODOS",
     busqueda: "",
+    soloNoLeidos: (function () {
+      try { return localStorage.getItem("it-noleidos") === "1"; } catch (e) { return false; }
+    })(),
+    clasificando: false,
     correos: window.DATOS.correos,
     intereses: cargarIntereses()
   };
@@ -189,6 +196,7 @@
   }
 
   function coincide(c) {
+    if (estado.soloNoLeidos && c.leido) return false;
     if (estado.filtro !== "TODOS" && c.veredicto !== estado.filtro) return false;
     var q = estado.busqueda.trim().toLowerCase();
     if (!q) return true;
@@ -338,27 +346,111 @@
 
   function pintarFiltros(idSel) {
     var cont = document.getElementById("filtros");
+    if (!cont) return;
     var defs = [
       { f: "TODOS", nombre: t("filtros.todos"), n: estado.correos.length },
       { f: "AHORA", nombre: SELLOS.AHORA.largo[lang], n: contarPorSello("AHORA") },
       { f: "DESPUES", nombre: SELLOS.DESPUES.largo[lang], n: contarPorSello("DESPUES") },
       { f: "NO", nombre: SELLOS.NO.largo[lang], n: contarPorSello("NO") }
     ];
+    var noLeidos = estado.correos.filter(function (c) { return !c.leido; }).length;
     cont.innerHTML = defs.map(function (d) {
       return '<button type="button" class="chip-filtro' + (estado.filtro === d.f ? " activo" : "") +
         '" data-f="' + d.f + '">' + esc(d.nombre) + ' <b>' + d.n + '</b></button>';
-    }).join("");
-    cont.querySelectorAll("button").forEach(function (b) {
+    }).join("") +
+      '<button type="button" class="chip-filtro chip-noleidos' + (estado.soloNoLeidos ? " activo" : "") +
+        '" id="chip-noleidos">' + esc(t("filtros.noleidos")) + ' <b>' + noLeidos + '</b></button>' +
+      (conectado()
+        ? '<button type="button" class="chip-filtro chip-clasificar" id="chip-clasificar"' +
+          (estado.clasificando ? ' disabled' : '') + '>' +
+          esc(t(estado.clasificando ? "accion.clasificando" : "accion.clasificar")) + '</button>'
+        : "");
+    cont.querySelectorAll("button[data-f]").forEach(function (b) {
       b.addEventListener("click", function () {
         estado.filtro = b.getAttribute("data-f");
         pintarFiltros(idSel);
         pintarRegistro(idSel);
       });
     });
+    document.getElementById("chip-noleidos").addEventListener("click", function () {
+      estado.soloNoLeidos = !estado.soloNoLeidos;
+      try { localStorage.setItem("it-noleidos", estado.soloNoLeidos ? "1" : "0"); } catch (e) {}
+      pintarFiltros(idSel);
+      pintarRegistro(idSel);
+    });
+    var btnClasificar = document.getElementById("chip-clasificar");
+    if (btnClasificar) {
+      btnClasificar.addEventListener("click", function () { clasificarNuevos(idSel); });
+    }
+  }
+
+  /* ---------- clasificar correos nuevos (con la app conectada) ---------- */
+  function clasificarNuevos(idSel) {
+    if (!conectado() || estado.clasificando) return;
+    estado.clasificando = true;
+    pintarFiltros(idSel);
+    fetch(window.CONEXION.api + "/api/clasificar", { method: "POST" }).catch(function () {});
+    var intentos = 0;
+    var timer = setInterval(function () {
+      intentos += 1;
+      fetch(window.CONEXION.api + "/api/clasificar")
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (!j.ocupado || intentos > 120) {
+            clearInterval(timer);
+            recargarBandeja(idSel);
+          }
+        })
+        .catch(function () {
+          clearInterval(timer);
+          estado.clasificando = false;
+          pintarFiltros(idSel);
+        });
+    }, 2500);
+  }
+
+  function recargarBandeja(idSel) {
+    fetch(window.CONEXION.api + "/api/bandeja")
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (j && Array.isArray(j.correos)) {
+          var leidos = {};
+          estado.correos.forEach(function (c) { if (c.leido) leidos[c.gmailId || c.id] = 1; });
+          j.correos.forEach(function (c) { if (leidos[c.gmailId || c.id]) c.leido = true; });
+          estado.correos = j.correos;
+        }
+        estado.clasificando = false;
+        pintarFiltros(idSel);
+        pintarRegistro(idSel);
+        actualizarNav(location.hash.indexOf("intereses") !== -1 ? "intereses" : "bandeja");
+      })
+      .catch(function () {
+        estado.clasificando = false;
+        pintarFiltros(idSel);
+      });
+  }
+
+  /* Refresco suave: si el servidor clasificó por su cuenta (polling), la
+     bandeja se actualiza sola al minuto, sin arrancarle el lector a nadie. */
+  if (conectado()) {
+    setInterval(function () {
+      if (estado.clasificando) return;
+      if (location.hash && location.hash.indexOf("#/bandeja/") === 0) return;
+      fetch(window.CONEXION.api + "/api/bandeja")
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (!j || !Array.isArray(j.correos)) return;
+          var firmaNueva = j.correos.map(function (c) { return c.gmailId || c.id; }).join(",");
+          var firmaVieja = estado.correos.map(function (c) { return c.gmailId || c.id; }).join(",");
+          if (firmaNueva !== firmaVieja) recargarBandeja(null);
+        })
+        .catch(function () {});
+    }, 60000);
   }
 
   function pintarRegistro(idSel) {
     var cont = document.getElementById("registro");
+    if (!cont) return;
     var lista = estado.correos.filter(coincide);
 
     if (!lista.length) {

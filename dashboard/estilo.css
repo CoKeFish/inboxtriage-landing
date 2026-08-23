@@ -452,3 +452,7 @@ h1 {
   max-width: none;
 }
 .salir-adios { line-height: 1.6; }
+
+/* Boton de clasificar y filtro de no leidos */
+.chip-clasificar { margin-left: auto; }
+.chip-clasificar[disabled] { opacity: 0.55; cursor: wait; }
