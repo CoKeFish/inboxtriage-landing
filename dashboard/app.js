@@ -24,6 +24,8 @@
     "estado.nube":     { es: "Enviado a la nube · 0 correos", en: "Sent to the cloud · 0 emails" },
     "chip.correos":    { es: "Demo · correos de ejemplo", en: "Demo · sample emails" },
     "chip.datos":      { es: "Demo · datos de ejemplo", en: "Demo · sample data" },
+    "chip.real":       { es: "Conectado · tus correos reales", en: "Connected · your real emails" },
+    "chip.real.datos": { es: "Conectado · tu criterio real", en: "Connected · your real rules" },
     "buscar.ph":       { es: "Buscar remitente, asunto o texto…", en: "Search sender, subject or text…" },
     "buscar.aria":     { es: "Buscar correo", en: "Search email" },
     "filtros.aria":    { es: "Filtrar por sello", en: "Filter by stamp" },
@@ -128,8 +130,27 @@
     intereses: cargarIntereses()
   };
 
-  /* ---------- intereses: carga y guardado local ---------- */
+  /* ---------- conexión con la app local ---------- */
+  function conectado() {
+    return Boolean(window.CONEXION && window.CONEXION.activa);
+  }
+  function api(ruta, cuerpo) {
+    if (!conectado()) return;
+    fetch(window.CONEXION.api + ruta, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(cuerpo)
+    }).catch(function () {});
+  }
+
+  /* ---------- intereses: carga y guardado ---------- */
   function cargarIntereses() {
+    /* conectado: la fuente de verdad es contexto.json de la app, no localStorage */
+    if (conectado()) {
+      return window.DATOS.intereses.map(function (i) {
+        return { id: i.id, texto: i.texto };
+      });
+    }
     try {
       var guardado = localStorage.getItem("it-intereses");
       if (guardado) {
@@ -144,6 +165,7 @@
 
   function guardarIntereses() {
     try { localStorage.setItem("it-intereses", JSON.stringify(estado.intereses)); } catch (e) {}
+    api("/api/intereses", { intereses: estado.intereses.map(textoInteres) });
   }
 
   /* ---------- consultas sobre los datos ---------- */
@@ -255,7 +277,7 @@
       '<header class="cab">' +
         '<h1>' + t("nav.bandeja") + '</h1>' +
         '<span class="fecha">' + esc(fechaHoy()) + '</span>' +
-        '<span class="chip-demo">' + t("chip.correos") + '</span>' +
+        '<span class="chip-demo">' + t(conectado() ? "chip.real" : "chip.correos") + '</span>' +
       '</header>' +
       '<div class="panel' + (correo ? " con-detalle" : "") + '">' +
         '<div class="registro-zona">' +
@@ -419,6 +441,7 @@
         c.veredicto = v;
         c.corregido = true;
         c.regla = null;
+        if (c.gmailId) api("/api/sello", { gmailId: c.gmailId, veredicto: v }); /* re-etiqueta en Gmail */
         actualizarNav("bandeja");
         pintarFiltros(c.id);
         pintarRegistro(c.id);
@@ -433,7 +456,7 @@
       '<header class="cab">' +
         '<h1>' + t("intereses.h1") + '</h1>' +
         '<span class="fecha">' + esc(semanaActual()) + '</span>' +
-        '<span class="chip-demo">' + t("chip.datos") + '</span>' +
+        '<span class="chip-demo">' + t(conectado() ? "chip.real.datos" : "chip.datos") + '</span>' +
       '</header>' +
       '<div class="intereses-grid">' +
         '<section class="ficha" aria-label="' + esc(t("ficha.aria")) + '">' +
