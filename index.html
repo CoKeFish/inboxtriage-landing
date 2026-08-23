@@ -69,8 +69,8 @@
   }
   .marca span { color: var(--sello); }
   .nav-links { display: flex; gap: 1.4rem; margin-left: auto; align-items: center; }
-  .nav-links a { color: var(--tinta-2); text-decoration: none; font-size: 0.92rem; font-weight: 500; }
-  .nav-links a:hover { color: var(--tinta); }
+  .nav-links a:not(.btn) { color: var(--tinta-2); text-decoration: none; font-size: 0.92rem; font-weight: 500; }
+  .nav-links a:not(.btn):hover { color: var(--tinta); }
   .lang-toggle { display: flex; align-items: center; gap: 0.1rem; font-family: var(--mono); font-size: 0.78rem; color: var(--tinta-2); }
   .lang-toggle button {
     background: none; border: none; cursor: pointer; font: inherit; color: inherit;
