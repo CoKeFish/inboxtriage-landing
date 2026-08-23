@@ -338,10 +338,11 @@
     display: inline-block; text-decoration: none;
     font-family: var(--display); font-variation-settings: "wdth" 112, "wght" 800;
     font-size: 1.15rem; letter-spacing: 0.04em; text-transform: uppercase;
-    background: var(--sello); color: #fff; border-radius: 10px; padding: 1.1rem 2.4rem;
+    background: var(--papel); color: var(--tinta); border-radius: 10px; padding: 1.1rem 2.4rem;
+    box-shadow: 0 6px 24px -8px rgba(157, 183, 242, 0.45);
     transition: transform 120ms ease, background 120ms ease;
   }
-  .btn-descargar:hover { transform: translateY(-2px); background: #1B3781; }
+  .btn-descargar:hover { transform: translateY(-2px); background: #FFFFFF; }
   .descarga-caja .sub { font-size: 0.9rem; color: #93A5B6; margin-top: 1rem; }
   .descarga-caja .sub a { color: #9DB7F2; }
   .descarga-nota { font-family: var(--mono); font-size: 0.78rem; color: #6B7C8D; margin-top: 1.2rem; text-align: center; }
@@ -368,8 +369,8 @@
         <button type="button" data-lang="es" class="activo">ES</button><span aria-hidden="true">/</span><button type="button" data-lang="en">EN</button>
       </div>
       <!-- Con la app local corriendo (GET localhost:8000/salud), este botón apunta
-           al dashboard local; si no, al panel hosteado con datos de ejemplo. -->
-      <a class="btn btn-sello" href="dashboard/" data-dash>Dashboard</a>
+           al dashboard local con tus correos reales; sin app, a la descarga. -->
+      <a class="btn btn-sello" href="#descargar" data-dash>Dashboard</a>
       <a class="btn btn-lleno" href="#descargar" data-i18n="nav.descargar">Descargar</a>
     </div>
   </div>
@@ -594,7 +595,7 @@
       <div class="lemas" data-i18n="ft.lema">100% local · Tu correo es tuyo</div>
     </div>
     <div class="enlaces">
-      <a href="dashboard/" data-dash data-i18n="ft.dash">Dashboard</a>
+      <a href="#descargar" data-dash data-i18n="ft.dash">Dashboard</a>
       <a href="https://github.com/CoKeFish/inboxtriage-landing">GitHub</a>
     </div>
   </div>

@@ -22,10 +22,13 @@
     "estado.modelo":   { es: "Modelo local activo", en: "Local model running" },
     "estado.triaje":   { es: "Último triaje · hoy 08:34", en: "Last triage · today 08:34" },
     "estado.nube":     { es: "Enviado a la nube · 0 correos", en: "Sent to the cloud · 0 emails" },
-    "chip.correos":    { es: "Demo · correos de ejemplo", en: "Demo · sample emails" },
-    "chip.datos":      { es: "Demo · datos de ejemplo", en: "Demo · sample data" },
+    "chip.correos":    { es: "Sin conexión con la app", en: "Not connected to the app" },
+    "chip.datos":      { es: "Sin conexión con la app", en: "Not connected to the app" },
     "chip.real":       { es: "Conectado · tus correos reales", en: "Connected · your real emails" },
     "chip.real.datos": { es: "Conectado · tu criterio real", en: "Connected · your real rules" },
+    "riel.web":        { es: "← Volver a la web", en: "← Back to the site" },
+    "vacio.sinDatos":  { es: "Aún no hay correos clasificados. Corre InboxTriage (clasifica tu bandeja) y recarga esta página.",
+                         en: "No emails classified yet. Run InboxTriage (it sorts your inbox) and reload this page." },
     "buscar.ph":       { es: "Buscar remitente, asunto o texto…", en: "Search sender, subject or text…" },
     "buscar.aria":     { es: "Buscar correo", en: "Search email" },
     "filtros.aria":    { es: "Filtrar por sello", en: "Filter by stamp" },
@@ -330,9 +333,14 @@
 
     if (!lista.length) {
       var q = estado.busqueda.trim();
-      var mensaje = q
-        ? t("vacio.busqueda", { q: esc(q) })
-        : (estado.filtro === "AHORA" ? t("vacio.ahora") : t("vacio.sello"));
+      var mensaje;
+      if (q) {
+        mensaje = t("vacio.busqueda", { q: esc(q) });
+      } else if (!estado.correos.length) {
+        mensaje = t("vacio.sinDatos");
+      } else {
+        mensaje = estado.filtro === "AHORA" ? t("vacio.ahora") : t("vacio.sello");
+      }
       cont.innerHTML = '<div class="vacio">' + mensaje + '</div>';
       return;
     }

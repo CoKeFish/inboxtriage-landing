@@ -1,7 +1,7 @@
 /* Puente con la app local de InboxTriage.
-   Si la app corre en esta máquina (localhost:8000), reemplaza los datos de
-   ejemplo por la bandeja y los intereses REALES antes de arrancar el panel.
-   Si no responde, el panel arranca igual con los datos de ejemplo (demo). */
+   El panel SOLO muestra correos reales: si la app corre en esta máquina
+   (localhost:8000), carga la bandeja y los intereses reales y arranca.
+   Si no hay app, redirige a la descarga — aquí no hay modo demo. */
 (function () {
   "use strict";
   /* Si el panel lo sirve la propia app local (mismo origen), la API es relativa
@@ -9,7 +9,7 @@
   var mismoOrigen = location.protocol === "http:" &&
     (location.hostname === "localhost" || location.hostname === "127.0.0.1");
   var API = mismoOrigen ? "" : "http://localhost:8000";
-  window.CONEXION = { activa: false, api: API };
+  window.CONEXION = { activa: false, api: API, local: mismoOrigen };
 
   function arrancar() {
     var s = document.createElement("script");
@@ -17,8 +17,12 @@
     document.body.appendChild(s);
   }
 
+  function aDescargas() {
+    location.replace("https://inboxtriage.vercel.app/#descargar");
+  }
+
   if (typeof AbortSignal === "undefined" || !AbortSignal.timeout || !window.fetch) {
-    return arrancar();
+    return mismoOrigen ? arrancar() : aDescargas();
   }
 
   fetch(API + "/salud", { signal: AbortSignal.timeout(1200) })
@@ -35,6 +39,11 @@
       if (rs[1] && Array.isArray(rs[1].intereses)) window.DATOS.intereses = rs[1].intereses;
       window.CONEXION.activa = true;
     })
-    .catch(function () { /* sin app local: datos de ejemplo */ })
-    .then(arrancar);
+    .then(arrancar)
+    .catch(function () {
+      /* Sin app conectada no hay nada real que mostrar:
+         en la app instalada arranca vacío; en la web, directo a la descarga. */
+      if (mismoOrigen) return arrancar();
+      aDescargas();
+    });
 })();
