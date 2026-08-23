@@ -11,12 +11,12 @@ correo salga de tu computador.
 - `index.html` — landing orientada a cliente: hero con la clasificación animada,
   privacidad como propuesta principal, ejemplo de dos correos, la bandeja en tres
   categorías, y sección de descarga con los requisitos de máquina.
-- `dashboard.html` — dashboard técnico (solo español): flujo de ejecución animado
-  de los 8 pasos del pipeline con latencias, los 5 jueces con pesos, y log de
-  inferencia QVAC reproducido.
 
-Ambas páginas son autocontenidas (CSS/JS inline, sin build step). Única dependencia
-externa: Google Fonts (Archivo, Public Sans, IBM Plex Mono) con fallbacks de sistema.
+Página autocontenida (CSS/JS inline, sin build step). Única dependencia externa:
+Google Fonts (Archivo, Public Sans, IBM Plex Mono) con fallbacks de sistema.
+
+El dashboard técnico lo construye otro integrante del equipo y vive fuera de este
+repo; la landing le deja un enlace placeholder.
 
 ## Idiomas
 
@@ -33,12 +33,16 @@ Hosting estático en Vercel (proyecto `inboxtriage`). Para publicar cambios:
 vercel deploy --prod
 ```
 
-Sirve igual en cualquier hosting estático: basta copiar los dos `.html`.
+Sirve igual en cualquier hosting estático: basta copiar `index.html`.
 
 ## Pendiente
 
-- El botón **Descargar** apunta a `#` (marcado con `EDITAR:` en `index.html`);
-  reemplazar por la URL real cuando exista un release descargable.
+Ambos marcados con `EDITAR:` en `index.html`:
+
+- El botón **Descargar** apunta a `#`; reemplazar por la URL real cuando exista
+  un release descargable.
+- El botón **Dashboard** apunta a `#`; reemplazar por la URL real cuando el
+  dashboard esté publicado.
 
 ## Accesibilidad
 
