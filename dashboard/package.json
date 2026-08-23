@@ -1,0 +1,16 @@
+{
+  "name": "inboxtriage-dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Panel de InboxTriage: revisa tu bandeja ordenada y escribe qué es importante esta semana. Frontend con datos de ejemplo.",
+  "scripts": {
+    "start": "serve . -l $PORT",
+    "dev": "serve . -l 3000"
+  },
+  "dependencies": {
+    "serve": "^14.2.3"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
