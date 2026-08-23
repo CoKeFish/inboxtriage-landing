@@ -873,8 +873,16 @@
   var PUERTOS = ["http://localhost:8642", "http://localhost:8000"];
   var enlaces = document.querySelectorAll("[data-dash]");
   if (!enlaces.length || typeof AbortSignal === "undefined" || !AbortSignal.timeout) return;
-  function sondear(i) {
-    if (i >= PUERTOS.length) return; /* sin app local: los enlaces quedan hacia la descarga */
+  var RONDAS = 3;
+  function sondear(i, ronda) {
+    if (i >= PUERTOS.length) {
+      /* Sin respuesta en esta ronda. Se reintenta un par de veces: la primera
+         visita, la persona puede tardar en aceptar el permiso de "red local"
+         de Chrome más que el timeout, y la sonda única perdía esa carrera.
+         Si tampoco hay app tras las rondas, los enlaces quedan en la descarga. */
+      if (ronda < RONDAS) setTimeout(function () { sondear(0, ronda + 1); }, 4000);
+      return;
+    }
     var DASH = PUERTOS[i];
     /* Timeout amplio: la primera vez Chrome puede pedir permiso de "red local"
        y la respuesta llega cuando la persona acepta. */
@@ -884,12 +892,12 @@
         if (j && j.app === "inboxtriage") {
           enlaces.forEach(function (a) { a.setAttribute("href", DASH); });
         } else {
-          sondear(i + 1);
+          sondear(i + 1, ronda);
         }
       })
-      .catch(function () { sondear(i + 1); });
+      .catch(function () { sondear(i + 1, ronda); });
   }
-  sondear(0);
+  sondear(0, 1);
 })();
 </script>
 </body>
