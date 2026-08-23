@@ -1,36 +1,44 @@
 # InboxTriage — Landing
 
-Landing de distribución y marketing para **InboxTriage** (Aleph Hackathon, agosto 2026 — sponsor Tether / QVAC), según RF-05 del PRD.
+Landing pública de **InboxTriage**, un agente de IA 100% local que organiza tu Gmail
+en tres categorías (Responder ahora / Responder después / No responder) sin que ningún
+correo salga de tu computador.
+
+**En vivo:** https://inboxtriage.vercel.app
 
 ## Estructura
 
-- `index.html` — landing principal: hero con triaje animado (el "sello"), caso canónico,
-  las 3 cubetas con correos de ejemplo y CTA en *Responder ahora*, cómo decide (5 preguntas + policy),
-  privacidad, requisitos + comando de clone, equipo.
-- `dashboard.html` — dashboard de ejecución explicativo: flujo animado de los 8 pasos del pipeline
-  con latencias, los 5 jueces con pesos, y log JSONL de QVAC reproducido.
+- `index.html` — landing orientada a cliente: hero con la clasificación animada,
+  privacidad como propuesta principal, ejemplo de dos correos, la bandeja en tres
+  categorías, y sección de descarga con los requisitos de máquina.
+- `dashboard.html` — dashboard técnico (solo español): flujo de ejecución animado
+  de los 8 pasos del pipeline con latencias, los 5 jueces con pesos, y log de
+  inferencia QVAC reproducido.
 
-Ambas páginas son autocontenidas (CSS/JS inline, sin build step). Única dependencia externa:
-Google Fonts (Archivo, Public Sans, IBM Plex Mono) con fallbacks de sistema.
-
-## Antes de publicar
-
-Buscar `EDITAR:` en ambos archivos y reemplazar:
-
-- la URL del repositorio de GitHub (`https://github.com/inboxtriage/inboxtriage` es placeholder),
-- los nombres del equipo en la sección Equipo.
-
-## Despliegue
-
-Hosting estático en ISPConfig 3.3: copiar `index.html` y `dashboard.html` a la raíz del vhost.
-Sin backend, sin build.
+Ambas páginas son autocontenidas (CSS/JS inline, sin build step). Única dependencia
+externa: Google Fonts (Archivo, Public Sans, IBM Plex Mono) con fallbacks de sistema.
 
 ## Idiomas
 
 `index.html` es bilingüe ES/EN: detecta el idioma del sistema (`navigator.language`),
-con toggle ES/EN en el nav, persistencia en `localStorage` y override por URL (`?lang=en`).
-El español vive en el HTML (fuente de verdad); el inglés, en el diccionario `EN` del script.
-El dashboard permanece solo en español.
+con toggle ES/EN en el nav, persistencia en `localStorage` y override por URL
+(`?lang=en`). El español vive en el HTML (fuente de verdad); el inglés, en el
+diccionario `EN` del script.
+
+## Despliegue
+
+Hosting estático en Vercel (proyecto `inboxtriage`). Para publicar cambios:
+
+```bash
+vercel deploy --prod
+```
+
+Sirve igual en cualquier hosting estático: basta copiar los dos `.html`.
+
+## Pendiente
+
+- El botón **Descargar** apunta a `#` (marcado con `EDITAR:` en `index.html`);
+  reemplazar por la URL real cuando exista un release descargable.
 
 ## Accesibilidad
 
