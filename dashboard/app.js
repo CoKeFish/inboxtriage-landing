@@ -1,16 +1,125 @@
 /* Panel de InboxTriage. Frontend puro sobre los datos de ejemplo de datos.js:
    la bandeja se navega con rutas de hash (#/bandeja, #/bandeja/3, #/intereses),
-   los intereses persisten en localStorage y las correcciones de sello viven en memoria. */
+   los intereses persisten en localStorage y las correcciones de sello viven en memoria.
+   Bilingüe ES/EN: la preferencia se comparte con la landing vía la clave "it-lang". */
 (function () {
   "use strict";
 
   var SELLOS = {
-    AHORA:   { corto: "Ahora",     largo: "Responder ahora",   clase: "ahora" },
-    DESPUES: { corto: "Después",   largo: "Responder después", clase: "despues" },
-    NO:      { corto: "Sin resp.", largo: "Sin respuesta",     clase: "no" }
+    AHORA:   { clase: "ahora",   corto: { es: "Ahora", en: "Now" },        largo: { es: "Responder ahora", en: "Reply now" } },
+    DESPUES: { clase: "despues", corto: { es: "Después", en: "Later" },    largo: { es: "Responder después", en: "Reply later" } },
+    NO:      { clase: "no",      corto: { es: "Sin resp.", en: "No reply" }, largo: { es: "Sin respuesta", en: "No reply" } }
+  };
+
+  var TXT = {
+    "titulo":          { es: "InboxTriage — Tu bandeja, revisada", en: "InboxTriage — Your inbox, reviewed" },
+    "meta.desc":       { es: "Revisa cómo quedó ordenado tu correo, corrige sellos y escribe qué es importante esta semana.",
+                         en: "See how your email was sorted, fix stamps and write what matters this week." },
+    "riel.rotulo":     { es: "tu correo, ordenado", en: "your email, sorted" },
+    "riel.nav":        { es: "Secciones del panel", en: "Panel sections" },
+    "nav.bandeja":     { es: "Bandeja", en: "Inbox" },
+    "nav.intereses":   { es: "Tus intereses", en: "Your interests" },
+    "estado.modelo":   { es: "Modelo local activo", en: "Local model running" },
+    "estado.triaje":   { es: "Último triaje · hoy 08:34", en: "Last triage · today 08:34" },
+    "estado.nube":     { es: "Enviado a la nube · 0 correos", en: "Sent to the cloud · 0 emails" },
+    "chip.correos":    { es: "Demo · correos de ejemplo", en: "Demo · sample emails" },
+    "chip.datos":      { es: "Demo · datos de ejemplo", en: "Demo · sample data" },
+    "buscar.ph":       { es: "Buscar remitente, asunto o texto…", en: "Search sender, subject or text…" },
+    "buscar.aria":     { es: "Buscar correo", en: "Search email" },
+    "filtros.aria":    { es: "Filtrar por sello", en: "Filter by stamp" },
+    "filtros.todos":   { es: "Todos", en: "All" },
+    "registro.aria":   { es: "Correos clasificados", en: "Sorted emails" },
+    "dia.hoy":         { es: "Hoy", en: "Today" },
+    "dia.ayer":        { es: "Ayer", en: "Yesterday" },
+    "dia.hoy.min":     { es: "hoy", en: "today" },
+    "dia.ayer.min":    { es: "ayer", en: "yesterday" },
+    "porque.b":        { es: "por qué:", en: "why:" },
+    "vacio.busqueda":  { es: "Ningún correo coincide con «{q}».", en: "No email matches “{q}”." },
+    "vacio.ahora":     { es: "Nada urgente esperando respuesta. Buena señal.", en: "Nothing urgent waiting for a reply. That's a good sign." },
+    "vacio.sello":     { es: "Nada con este sello por ahora.", en: "Nothing with this stamp for now." },
+    "lector.fantasma": { es: "Revisar", en: "Review" },
+    "lector.vacio":    { es: "Elige un correo del registro para leerlo y revisar su sello.",
+                         en: "Pick an email from the log to read it and check its stamp." },
+    "lector.aria":     { es: "Correo seleccionado", en: "Selected email" },
+    "volver":          { es: "← Volver a la bandeja", en: "← Back to the inbox" },
+    "porque.h3":       { es: "Por qué este sello", en: "Why this stamp" },
+    "razon.corregida": { es: "corregido por ti", en: "corrected by you" },
+    "origen.corregido":{ es: "InboxTriage tendrá en cuenta esta corrección en el próximo triaje.",
+                         en: "InboxTriage will take this correction into account in the next triage." },
+    "origen.interes":  { es: "Coincide con tu interés: «{t}».", en: "Matches your interest: “{t}”." },
+    "origen.borrado":  { es: "Venía de uno de tus intereses de esta semana.", en: "It came from one of this week's interests." },
+    "origen.general":  { es: "Criterio general: se fija en si te preguntan algo y para cuándo.",
+                         en: "General rule: it looks at whether they ask you something, and by when." },
+    "ver.intereses":   { es: "Ver tus intereses →", en: "See your interests →" },
+    "corrigelo":       { es: "¿Sello equivocado? Corrígelo", en: "Wrong stamp? Fix it" },
+    "gmail":           { es: "Abrir en Gmail", en: "Open in Gmail" },
+    "intereses.h1":    { es: "Tus intereses", en: "Your interests" },
+    "ficha.aria":      { es: "Tu criterio de la semana", en: "Your rules for the week" },
+    "ficha.h2":        { es: "Qué es importante esta semana", en: "What matters this week" },
+    "ficha.intro":     { es: "InboxTriage usa esta lista para decidir qué correo va primero. Escríbelo como se lo dirías a una persona: un evento, una entrega, ciertas personas.",
+                         en: "InboxTriage uses this list to decide which email goes first. Write it the way you'd tell a person: an event, a deadline, certain people." },
+    "interes.ph":      { es: "Escribe qué es importante…", en: "Write what matters…" },
+    "interes.aria":    { es: "Interés {n}", en: "Interest {n}" },
+    "interes.quitar":  { es: "Quitar este interés", en: "Remove this interest" },
+    "impacto.uno":     { es: "movió 1 correo", en: "moved 1 email" },
+    "impacto.varios":  { es: "movió {n} correos", en: "moved {n} emails" },
+    "impacto.title":   { es: "Correos que este interés colocó en su bandeja esta semana",
+                         en: "Emails this interest placed in their tray this week" },
+    "impacto.nuevo":   { es: "desde el próximo triaje", en: "from the next triage on" },
+    "anadir":          { es: "+ Añadir un interés", en: "+ Add an interest" },
+    "guardar":         { es: "Guardar mi criterio", en: "Save my rules" },
+    "guardado":        { es: "Guardado", en: "Saved" },
+    "nota.privada":    { es: "Se guarda solo en tu computador. Nada de esto sale a internet.",
+                         en: "Saved only on your computer. None of this goes to the internet." },
+    "vacio.intereses": { es: "Tu lista está vacía. Sin criterio propio, InboxTriage ordena solo con el criterio general.",
+                         en: "Your list is empty. Without your own rules, InboxTriage sorts with the general rule only." },
+    "consejos.h3":     { es: "¿Cómo escribirlos?", en: "How to write them?" },
+    "consejos.p":      { es: "Funciona mejor con frases concretas:", en: "It works best with concrete phrases:" },
+    "consejos.e1":     { es: "«El evento de graduación del viernes 29»", en: "“The graduation event on Friday the 29th”" },
+    "consejos.e2":     { es: "«Todo lo que mencione la auditoría va primero»", en: "“Anything that mentions the audit goes first”" },
+    "consejos.e3":     { es: "«María, la proveedora del catering»", en: "“María, the catering vendor”" },
+    "consejos.borra":  { es: "Y bórralos cuando dejen de importar: la próxima semana tu bandeja se ordena distinto.",
+                         en: "And delete them when they stop mattering: next week your inbox sorts differently." }
   };
 
   var vista = document.getElementById("vista");
+
+  var lang = (function () {
+    var url = new URLSearchParams(location.search).get("lang");
+    if (url === "es" || url === "en") return url;
+    var guardado = null;
+    try { guardado = localStorage.getItem("it-lang"); } catch (e) {}
+    if (guardado === "es" || guardado === "en") return guardado;
+    var nav = (navigator.language || "es").toLowerCase();
+    return nav.indexOf("es") === 0 ? "es" : "en";
+  })();
+
+  function t(clave, vars) {
+    var entrada = TXT[clave] || {};
+    var texto = entrada[lang] || entrada.es || clave;
+    if (vars) {
+      Object.keys(vars).forEach(function (k) { texto = texto.replace("{" + k + "}", vars[k]); });
+    }
+    return texto;
+  }
+
+  function esc(texto) {
+    return String(texto).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  /* Campos de datos con traducción de demo opcional (bloque `en` en datos.js). */
+  function campo(c, nombre) {
+    if (lang === "en" && c.en && c.en[nombre] != null) return c.en[nombre];
+    return c[nombre];
+  }
+  function razonDe(c) {
+    return c.corregido ? t("razon.corregida") : campo(c, "razon");
+  }
+  function textoInteres(i) {
+    return (lang === "en" && i.en != null) ? i.en : i.texto;
+  }
 
   var estado = {
     filtro: "TODOS",
@@ -18,12 +127,6 @@
     correos: window.DATOS.correos,
     intereses: cargarIntereses()
   };
-
-  function esc(t) {
-    return String(t).replace(/[&<>"']/g, function (c) {
-      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
-    });
-  }
 
   /* ---------- intereses: carga y guardado local ---------- */
   function cargarIntereses() {
@@ -34,7 +137,9 @@
         if (Array.isArray(lista)) return lista;
       }
     } catch (e) {}
-    return window.DATOS.intereses.map(function (i) { return { id: i.id, texto: i.texto }; });
+    return window.DATOS.intereses.map(function (i) {
+      return { id: i.id, texto: i.texto, en: i.en };
+    });
   }
 
   function guardarIntereses() {
@@ -56,13 +161,14 @@
     if (estado.filtro !== "TODOS" && c.veredicto !== estado.filtro) return false;
     var q = estado.busqueda.trim().toLowerCase();
     if (!q) return true;
-    var pajar = (c.quien + " " + c.de + " " + c.asunto + " " + c.cuerpo.join(" ")).toLowerCase();
+    var pajar = (campo(c, "quien") + " " + c.de + " " + campo(c, "asunto") + " " +
+      campo(c, "cuerpo").join(" ") + " " + razonDe(c)).toLowerCase();
     return pajar.indexOf(q) !== -1;
   }
 
   /* ---------- fechas ---------- */
   function fechaHoy() {
-    var f = new Date().toLocaleDateString("es", { weekday: "long", day: "numeric", month: "long" });
+    var f = new Date().toLocaleDateString(lang, { weekday: "long", day: "numeric", month: "long" });
     return f.charAt(0).toUpperCase() + f.slice(1);
   }
 
@@ -72,13 +178,44 @@
     lunes.setDate(hoy.getDate() - ((hoy.getDay() + 6) % 7));
     var domingo = new Date(lunes);
     domingo.setDate(lunes.getDate() + 6);
-    var mesL = lunes.toLocaleDateString("es", { month: "long" });
-    var mesD = domingo.toLocaleDateString("es", { month: "long" });
+    var mesL = lunes.toLocaleDateString(lang, { month: "long" });
+    var mesD = domingo.toLocaleDateString(lang, { month: "long" });
+    if (lang === "en") {
+      return "Week of " + mesL + " " + lunes.getDate() + " to " +
+        (mesL === mesD ? "" : mesD + " ") + domingo.getDate();
+    }
     return "Semana del " + lunes.getDate() + (mesL === mesD ? "" : " de " + mesL) +
       " al " + domingo.getDate() + " de " + mesD;
   }
 
-  /* ---------- riel ---------- */
+  /* ---------- idioma ---------- */
+  function setLang(l) {
+    lang = l;
+    try { localStorage.setItem("it-lang", l); } catch (e) {}
+    document.documentElement.lang = l;
+    document.title = t("titulo");
+    var meta = document.querySelector('meta[name="description"]');
+    if (meta) meta.setAttribute("content", t("meta.desc"));
+    pintarRiel();
+    render();
+  }
+
+  function pintarRiel() {
+    document.querySelectorAll("[data-i18n]").forEach(function (el) {
+      el.textContent = t(el.getAttribute("data-i18n"));
+    });
+    var nav = document.querySelector(".riel nav");
+    if (nav) nav.setAttribute("aria-label", t("riel.nav"));
+    document.querySelectorAll(".lang-toggle button").forEach(function (b) {
+      b.classList.toggle("activo", b.getAttribute("data-lang") === lang);
+    });
+  }
+
+  document.querySelectorAll(".lang-toggle button").forEach(function (b) {
+    b.addEventListener("click", function () { setLang(b.getAttribute("data-lang")); });
+  });
+
+  /* ---------- riel: sección activa y contador ---------- */
   function actualizarNav(rutaActual) {
     document.querySelectorAll(".nav-item").forEach(function (a) {
       a.classList.toggle("activo", a.getAttribute("data-ruta") === rutaActual);
@@ -116,17 +253,18 @@
 
     vista.innerHTML =
       '<header class="cab">' +
-        '<h1>Bandeja</h1>' +
+        '<h1>' + t("nav.bandeja") + '</h1>' +
         '<span class="fecha">' + esc(fechaHoy()) + '</span>' +
-        '<span class="chip-demo">Demo · correos de ejemplo</span>' +
+        '<span class="chip-demo">' + t("chip.correos") + '</span>' +
       '</header>' +
       '<div class="panel' + (correo ? " con-detalle" : "") + '">' +
         '<div class="registro-zona">' +
           '<div class="controles">' +
-            '<input class="busqueda" id="busqueda" type="search" placeholder="Buscar remitente, asunto o texto…" aria-label="Buscar correo">' +
-            '<div class="filtros" role="group" aria-label="Filtrar por sello" id="filtros"></div>' +
+            '<input class="busqueda" id="busqueda" type="search" placeholder="' + esc(t("buscar.ph")) +
+              '" aria-label="' + esc(t("buscar.aria")) + '">' +
+            '<div class="filtros" role="group" aria-label="' + esc(t("filtros.aria")) + '" id="filtros"></div>' +
           '</div>' +
-          '<div class="registro" id="registro" aria-label="Correos clasificados"></div>' +
+          '<div class="registro" id="registro" aria-label="' + esc(t("registro.aria")) + '"></div>' +
         '</div>' +
         '<div class="lector" id="lector"></div>' +
       '</div>';
@@ -146,10 +284,10 @@
   function pintarFiltros(idSel) {
     var cont = document.getElementById("filtros");
     var defs = [
-      { f: "TODOS", nombre: "Todos", n: estado.correos.length },
-      { f: "AHORA", nombre: SELLOS.AHORA.largo, n: contarPorSello("AHORA") },
-      { f: "DESPUES", nombre: SELLOS.DESPUES.largo, n: contarPorSello("DESPUES") },
-      { f: "NO", nombre: SELLOS.NO.largo, n: contarPorSello("NO") }
+      { f: "TODOS", nombre: t("filtros.todos"), n: estado.correos.length },
+      { f: "AHORA", nombre: SELLOS.AHORA.largo[lang], n: contarPorSello("AHORA") },
+      { f: "DESPUES", nombre: SELLOS.DESPUES.largo[lang], n: contarPorSello("DESPUES") },
+      { f: "NO", nombre: SELLOS.NO.largo[lang], n: contarPorSello("NO") }
     ];
     cont.innerHTML = defs.map(function (d) {
       return '<button type="button" class="chip-filtro' + (estado.filtro === d.f ? " activo" : "") +
@@ -171,10 +309,8 @@
     if (!lista.length) {
       var q = estado.busqueda.trim();
       var mensaje = q
-        ? "Ningún correo coincide con «" + esc(q) + "»."
-        : (estado.filtro === "AHORA"
-            ? "Nada urgente esperando respuesta. Buena señal."
-            : "Nada con este sello por ahora.");
+        ? t("vacio.busqueda", { q: esc(q) })
+        : (estado.filtro === "AHORA" ? t("vacio.ahora") : t("vacio.sello"));
       cont.innerHTML = '<div class="vacio">' + mensaje + '</div>';
       return;
     }
@@ -184,7 +320,7 @@
     lista.forEach(function (c) {
       if (c.dia !== diaPrevio) {
         diaPrevio = c.dia;
-        html += '<div class="dia-rotulo">' + (c.dia === "hoy" ? "Hoy" : "Ayer") + '</div>';
+        html += '<div class="dia-rotulo">' + t(c.dia === "hoy" ? "dia.hoy" : "dia.ayer") + '</div>';
       }
       var s = SELLOS[c.veredicto];
       html +=
@@ -192,11 +328,11 @@
           (c.leido ? "" : " no-leido") + (c.id === idSel ? " activa" : "") +
           '" data-id="' + c.id + '">' +
           '<span class="fila-arriba">' +
-            '<span class="fila-quien">' + esc(c.quien) + '</span>' +
-            '<span class="etiqueta-mini mini-' + s.clase + '">' + esc(s.corto) + '</span>' +
+            '<span class="fila-quien">' + esc(campo(c, "quien")) + '</span>' +
+            '<span class="etiqueta-mini mini-' + s.clase + '">' + esc(s.corto[lang]) + '</span>' +
           '</span>' +
-          '<span class="fila-asunto">' + esc(c.asunto) + '</span>' +
-          '<span class="fila-razon"><span><b>por qué:</b> ' + esc(c.razon) + '</span>' +
+          '<span class="fila-asunto">' + esc(campo(c, "asunto")) + '</span>' +
+          '<span class="fila-razon"><span><b>' + t("porque.b") + '</b> ' + esc(razonDe(c)) + '</span>' +
           '<span class="fila-hora">' + esc(c.hora) + '</span></span>' +
         '</button>';
     });
@@ -215,8 +351,8 @@
     if (!c) {
       cont.innerHTML =
         '<div class="lector-vacio">' +
-          '<span class="sello-fantasma" aria-hidden="true">Revisar</span>' +
-          '<p>Elige un correo del registro para leerlo y revisar su sello.</p>' +
+          '<span class="sello-fantasma" aria-hidden="true">' + t("lector.fantasma") + '</span>' +
+          '<p>' + t("lector.vacio") + '</p>' +
         '</div>';
       return;
     }
@@ -229,44 +365,46 @@
 
     var origen;
     if (c.corregido) {
-      origen = "InboxTriage tendrá en cuenta esta corrección en el próximo triaje.";
+      origen = t("origen.corregido");
     } else if (regla) {
-      origen = 'Coincide con tu interés: «' + esc(regla.texto) + '». <a href="#/intereses">Ver tus intereses →</a>';
+      origen = t("origen.interes", { t: esc(textoInteres(regla)) }) +
+        ' <a href="#/intereses">' + t("ver.intereses") + '</a>';
     } else if (c.regla) {
-      origen = "Venía de uno de tus intereses de esta semana.";
+      origen = t("origen.borrado");
     } else {
-      origen = "Criterio general: se fija en si te preguntan algo y para cuándo.";
+      origen = t("origen.general");
     }
 
-    var razonBonita = c.razon.charAt(0).toUpperCase() + c.razon.slice(1);
-    var busquedaGmail = encodeURIComponent('subject:"' + c.asunto + '"');
+    var razon = razonDe(c);
+    var razonBonita = razon.charAt(0).toUpperCase() + razon.slice(1);
+    var busquedaGmail = encodeURIComponent('subject:"' + campo(c, "asunto") + '"');
 
     cont.innerHTML =
-      '<button type="button" class="btn-volver" id="volver">← Volver a la bandeja</button>' +
-      '<article class="carta-detalle" aria-label="Correo seleccionado">' +
-        '<span class="sello-marca estampa color-' + s.clase + '">' + esc(s.corto) + '</span>' +
-        '<p class="detalle-de">' + esc(c.quien) + ' &lt;' + esc(c.de) + '&gt; · ' +
-          (c.dia === "hoy" ? "hoy" : "ayer") + " " + esc(c.hora) + '</p>' +
-        '<h2 class="detalle-asunto">' + esc(c.asunto) + '</h2>' +
+      '<button type="button" class="btn-volver" id="volver">' + t("volver") + '</button>' +
+      '<article class="carta-detalle" aria-label="' + esc(t("lector.aria")) + '">' +
+        '<span class="sello-marca estampa color-' + s.clase + '">' + esc(s.corto[lang]) + '</span>' +
+        '<p class="detalle-de">' + esc(campo(c, "quien")) + ' &lt;' + esc(c.de) + '&gt; · ' +
+          t(c.dia === "hoy" ? "dia.hoy.min" : "dia.ayer.min") + " " + esc(c.hora) + '</p>' +
+        '<h2 class="detalle-asunto">' + esc(campo(c, "asunto")) + '</h2>' +
         '<div class="detalle-cuerpo">' +
-          c.cuerpo.map(function (p) { return "<p>" + esc(p) + "</p>"; }).join("") +
+          campo(c, "cuerpo").map(function (p) { return "<p>" + esc(p) + "</p>"; }).join("") +
         '</div>' +
         '<div class="porque">' +
-          '<h3>Por qué este sello</h3>' +
+          '<h3>' + t("porque.h3") + '</h3>' +
           '<p>' + esc(razonBonita) + '.</p>' +
           '<p class="origen">' + origen + '</p>' +
         '</div>' +
         '<div class="acciones">' +
-          '<span class="rotulo">¿Sello equivocado? Corrígelo</span>' +
+          '<span class="rotulo">' + t("corrigelo") + '</span>' +
           ["AHORA", "DESPUES", "NO"].map(function (v) {
             var sv = SELLOS[v];
             var actual = c.veredicto === v;
             return '<button type="button" class="boton-sello color-' + sv.clase +
               (actual ? " actual" : "") + '" data-v="' + v + '" aria-pressed="' + actual + '">' +
-              esc(sv.largo) + '</button>';
+              esc(sv.largo[lang]) + '</button>';
           }).join("") +
           '<a class="enlace-gmail" target="_blank" rel="noopener" ' +
-            'href="https://mail.google.com/mail/u/0/#search/' + busquedaGmail + '">Abrir en Gmail</a>' +
+            'href="https://mail.google.com/mail/u/0/#search/' + busquedaGmail + '">' + t("gmail") + '</a>' +
         '</div>' +
       '</article>';
 
@@ -281,7 +419,6 @@
         c.veredicto = v;
         c.corregido = true;
         c.regla = null;
-        c.razon = "corregido por ti";
         actualizarNav("bandeja");
         pintarFiltros(c.id);
         pintarRegistro(c.id);
@@ -294,30 +431,29 @@
   function renderIntereses() {
     vista.innerHTML =
       '<header class="cab">' +
-        '<h1>Tus intereses</h1>' +
+        '<h1>' + t("intereses.h1") + '</h1>' +
         '<span class="fecha">' + esc(semanaActual()) + '</span>' +
-        '<span class="chip-demo">Demo · datos de ejemplo</span>' +
+        '<span class="chip-demo">' + t("chip.datos") + '</span>' +
       '</header>' +
       '<div class="intereses-grid">' +
-        '<section class="ficha" aria-label="Tu criterio de la semana">' +
-          '<div class="ficha-cab"><h2>Qué es importante esta semana</h2></div>' +
-          '<p class="ficha-intro">InboxTriage usa esta lista para decidir qué correo va primero. ' +
-            'Escríbelo como se lo dirías a una persona: un evento, una entrega, ciertas personas.</p>' +
+        '<section class="ficha" aria-label="' + esc(t("ficha.aria")) + '">' +
+          '<div class="ficha-cab"><h2>' + t("ficha.h2") + '</h2></div>' +
+          '<p class="ficha-intro">' + t("ficha.intro") + '</p>' +
           '<div id="lista-intereses"></div>' +
           '<div class="ficha-acciones">' +
-            '<button type="button" class="btn-anadir" id="anadir">+ Añadir un interés</button>' +
-            '<button type="button" class="btn-guardar" id="guardar">Guardar mi criterio</button>' +
-            '<span class="sello-marca sello-guardado" id="sello-guardado" hidden>Guardado</span>' +
+            '<button type="button" class="btn-anadir" id="anadir">' + t("anadir") + '</button>' +
+            '<button type="button" class="btn-guardar" id="guardar">' + t("guardar") + '</button>' +
+            '<span class="sello-marca sello-guardado" id="sello-guardado" hidden>' + t("guardado") + '</span>' +
           '</div>' +
-          '<p class="nota-privada">Se guarda solo en tu computador. Nada de esto sale a internet.</p>' +
+          '<p class="nota-privada">' + t("nota.privada") + '</p>' +
         '</section>' +
         '<aside class="consejos">' +
-          '<h3>¿Cómo escribirlos?</h3>' +
-          '<p>Funciona mejor con frases concretas:</p>' +
-          '<p class="ejemplo">«El evento de graduación del viernes 29»</p>' +
-          '<p class="ejemplo">«Todo lo que mencione la auditoría va primero»</p>' +
-          '<p class="ejemplo">«María, la proveedora del catering»</p>' +
-          '<p>Y bórralos cuando dejen de importar: la próxima semana tu bandeja se ordena distinto.</p>' +
+          '<h3>' + t("consejos.h3") + '</h3>' +
+          '<p>' + t("consejos.p") + '</p>' +
+          '<p class="ejemplo">' + t("consejos.e1") + '</p>' +
+          '<p class="ejemplo">' + t("consejos.e2") + '</p>' +
+          '<p class="ejemplo">' + t("consejos.e3") + '</p>' +
+          '<p>' + t("consejos.borra") + '</p>' +
         '</aside>' +
       '</div>';
 
@@ -331,8 +467,11 @@
     });
 
     document.getElementById("guardar").addEventListener("click", function () {
-      estado.intereses = estado.intereses.filter(function (i) { return i.texto.trim() !== ""; });
-      estado.intereses.forEach(function (i) { i.texto = i.texto.trim(); });
+      estado.intereses = estado.intereses.filter(function (i) { return textoInteres(i).trim() !== ""; });
+      estado.intereses.forEach(function (i) {
+        i.texto = i.texto.trim();
+        if (i.en != null) i.en = i.en.trim();
+      });
       guardarIntereses();
       pintarIntereses();
       var sello = document.getElementById("sello-guardado");
@@ -353,8 +492,7 @@
     cont.innerHTML = "";
 
     if (!estado.intereses.length) {
-      cont.innerHTML = '<div class="vacio">Tu lista está vacía. Sin criterio propio, ' +
-        'InboxTriage ordena solo con el criterio general.</div>';
+      cont.innerHTML = '<div class="vacio">' + t("vacio.intereses") + '</div>';
       return;
     }
 
@@ -367,14 +505,16 @@
       guion.setAttribute("aria-hidden", "true");
       guion.textContent = "—";
 
-      var campo = document.createElement("input");
-      campo.className = "interes-texto";
-      campo.type = "text";
-      campo.value = interes.texto;
-      campo.placeholder = "Escribe qué es importante…";
-      campo.setAttribute("aria-label", "Interés " + (idx + 1));
-      campo.addEventListener("input", function () {
-        interes.texto = campo.value;
+      var entrada = document.createElement("input");
+      entrada.className = "interes-texto";
+      entrada.type = "text";
+      entrada.value = textoInteres(interes);
+      entrada.placeholder = t("interes.ph");
+      entrada.setAttribute("aria-label", t("interes.aria", { n: idx + 1 }));
+      entrada.addEventListener("input", function () {
+        /* en la demo bilingüe cada idioma edita su propia versión del texto */
+        if (lang === "en" && interes.en != null) interes.en = entrada.value;
+        else interes.texto = entrada.value;
         ocultarSelloGuardado();
       });
 
@@ -382,10 +522,10 @@
       chip.className = "impacto";
       var n = interes.id ? impacto(interes.id) : 0;
       if (n > 0) {
-        chip.textContent = n === 1 ? "movió 1 correo" : "movió " + n + " correos";
-        chip.title = "Correos que este interés colocó en su bandeja esta semana";
+        chip.textContent = n === 1 ? t("impacto.uno") : t("impacto.varios", { n: n });
+        chip.title = t("impacto.title");
       } else {
-        chip.textContent = "desde el próximo triaje";
+        chip.textContent = t("impacto.nuevo");
         chip.classList.add("nuevo");
       }
 
@@ -393,17 +533,17 @@
       quitar.type = "button";
       quitar.className = "borrar";
       quitar.textContent = "×";
-      quitar.setAttribute("aria-label", "Quitar este interés");
+      quitar.setAttribute("aria-label", t("interes.quitar"));
       quitar.addEventListener("click", function () {
         estado.intereses.splice(estado.intereses.indexOf(interes), 1);
         pintarIntereses();
         ocultarSelloGuardado();
       });
 
-      fila.append(guion, campo, chip, quitar);
+      fila.append(guion, entrada, chip, quitar);
       cont.appendChild(fila);
     });
   }
 
-  render();
+  setLang(lang);
 })();

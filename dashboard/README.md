@@ -13,6 +13,11 @@ corregir su sello y escribir los **intereses de la semana** que guían el triaje
 
 Sin build, sin framework: HTML + CSS + JS planos, igual que la landing.
 
+Bilingüe ES/EN con el mismo mecanismo de la landing: toggle en el riel,
+preferencia compartida en `localStorage` (clave `it-lang`) y `?lang=en` en la URL.
+Los textos EN de los datos de ejemplo viven en el bloque `en` de cada objeto de
+`datos.js`; la API real entregará un solo idioma.
+
 ## Estructura
 
 | Archivo | Qué es |

@@ -18,16 +18,19 @@
   <aside class="riel">
     <div>
       <a class="marca" href="#/bandeja">INBOXTRIAGE<span>/</span></a>
-      <span class="riel-rotulo">tu correo, ordenado</span>
+      <span class="riel-rotulo" data-i18n="riel.rotulo">tu correo, ordenado</span>
     </div>
     <nav aria-label="Secciones del panel">
-      <a class="nav-item" href="#/bandeja" data-ruta="bandeja">Bandeja <span class="cuenta-nav" id="cuenta-nav" hidden></span></a>
-      <a class="nav-item" href="#/intereses" data-ruta="intereses">Tus intereses</a>
+      <a class="nav-item" href="#/bandeja" data-ruta="bandeja"><span data-i18n="nav.bandeja">Bandeja</span> <span class="cuenta-nav" id="cuenta-nav" hidden></span></a>
+      <a class="nav-item" href="#/intereses" data-ruta="intereses"><span data-i18n="nav.intereses">Tus intereses</span></a>
     </nav>
+    <div class="lang-toggle" role="group" aria-label="Idioma / Language">
+      <button type="button" data-lang="es">ES</button><span aria-hidden="true">/</span><button type="button" data-lang="en">EN</button>
+    </div>
     <div class="riel-estado">
-      <p><span class="punto-vivo" aria-hidden="true">●</span> Modelo local activo</p>
-      <p>Último triaje · hoy 08:34</p>
-      <p>Enviado a la nube · 0 correos</p>
+      <p><span class="punto-vivo" aria-hidden="true">●</span> <span data-i18n="estado.modelo">Modelo local activo</span></p>
+      <p data-i18n="estado.triaje">Último triaje · hoy 08:34</p>
+      <p data-i18n="estado.nube">Enviado a la nube · 0 correos</p>
     </div>
   </aside>
   <main id="vista" class="vista"></main>

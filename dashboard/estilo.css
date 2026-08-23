@@ -86,6 +86,17 @@ button { font: inherit; color: inherit; }
   background: var(--ahora); color: #fff;
   border-radius: 999px; padding: 0.05rem 0.5rem;
 }
+.lang-toggle {
+  display: flex; align-items: center; gap: 0.1rem;
+  font-family: var(--mono); font-size: 0.78rem; color: var(--riel-tenue);
+}
+.lang-toggle button {
+  background: none; border: none; cursor: pointer; font: inherit; color: inherit;
+  padding: 0.2rem 0.3rem; letter-spacing: 0.06em;
+}
+.lang-toggle button:hover { color: #fff; }
+.lang-toggle button.activo { color: #6E93E8; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+
 .riel-estado {
   margin-top: auto; border-top: 1px solid var(--riel-borde); padding-top: 1rem;
   display: grid; gap: 0.45rem;
